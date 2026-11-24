@@ -31,3 +31,4 @@ Thumbs.db
 !.env.example
 !.env.development
 !.env.production
+.neon
