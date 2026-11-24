@@ -1,0 +1,34 @@
+{
+  "bundler": "vite",
+  "projectName": "noctura",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "npm",
+  "includeExamples": false,
+  "tailwind": true,
+  "projectPreset": "default",
+  "routerOnly": false,
+  "addOnOptions": {
+    "drizzle": {
+      "database": "postgresql"
+    }
+  },
+  "git": true,
+  "install": true,
+  "intent": true,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "biome",
+    "cloudflare",
+    "tanstack-query",
+    "shadcn",
+    "form",
+    "drizzle",
+    "compiler",
+    "neon",
+    "better-auth",
+    "t3env",
+    "table"
+  ]
+}

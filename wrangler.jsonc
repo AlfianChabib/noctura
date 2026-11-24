@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "noctura",
+  "compatibility_date": "2025-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "env": {
+    "development": {
+      "name": "noctura-dev",
+      "vars": {
+        "NODE_ENV": "development",
+        "VITE_APP_TITLE": "Noctura Fashion Store",
+        "BETTER_AUTH_URL": "http://localhost:3000",
+        "MIDTRANS_IS_PRODUCTION": "false",
+        "MIDTRANS_SNAP_URL": "https://app.sandbox.midtrans.com/snap/snap.js",
+        "RAJAONGKIR_BASE_URL": "https://rajaongkir.komerce.id/api/v1/"
+      }
+    },
+    "production": {
+      "name": "noctura",
+      "vars": {
+        "NODE_ENV": "production",
+        "VITE_APP_TITLE": "Noctura Fashion Store",
+        "BETTER_AUTH_URL": "https://noctura.com",
+        "MIDTRANS_IS_PRODUCTION": "true",
+        "MIDTRANS_SNAP_URL": "https://app.midtrans.com/snap/snap.js",
+        "RAJAONGKIR_BASE_URL": "https://rajaongkir.komerce.id/api/v1/"
+      }
+    }
+  }
+}

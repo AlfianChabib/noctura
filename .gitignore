@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs & temp files
+dist/
+dist-ssr/
+.nitro/
+.tanstack/
+.wrangler/
+.output/
+.vinxi/
+__unconfig*
+todos.json
+.idea/
+.task/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables & local secrets (NEVER commit secrets)
+.env.local
+.env.*.local
+*.local
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# If using .env for personal overrides, ignore it while tracking templates:
+.env
+!.env.example
+!.env.development
+!.env.production

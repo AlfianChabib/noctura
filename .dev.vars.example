@@ -1,0 +1,32 @@
+# ==============================================================================
+# Cloudflare Worker / Wrangler Local Development Secrets (.dev.vars)
+# ==============================================================================
+# Copy this file to `.dev.vars` for local `wrangler dev` execution.
+# Sensitive secrets must NOT be committed to version control.
+# ==============================================================================
+
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/noctura_dev"
+DATABASE_URL_POOLER="postgresql://username:password@localhost:5432/noctura_dev?sslmode=require"
+
+# Better Auth (Min 32 characters)
+BETTER_AUTH_SECRET="1a40a6aab8acbb9494d61d1b08e2381c7048e597e8706aacd5829bf5171d1e80"
+BETTER_AUTH_URL="http://localhost:3000"
+
+# Midtrans
+MIDTRANS_SERVER_KEY="SB-Mid-server-xxxx"
+MIDTRANS_CLIENT_KEY="SB-Mid-client-xxxx"
+MIDTRANS_SIGNATURE_SECRET_KEY="midtrans-secret-xxxx"
+
+# RajaOngkir Komerce V2
+RAJAONGKIR_API_KEY="rajaongkir-key-xxxx"
+RAJAONGKIR_ORIGIN_SUBDISTRICT_ID="5779"
+
+# Resend Email
+RESEND_API_KEY="re_xxxx_xxxx"
+RESEND_WEBHOOK_SECRET="whsec_xxxx"
+
+# ImageKit DAM
+IMAGEKIT_PUBLIC_KEY="public_xxxx="
+IMAGEKIT_PRIVATE_KEY="private_xxxx="
+IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/noctura"
