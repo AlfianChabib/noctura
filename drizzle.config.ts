@@ -18,18 +18,20 @@ config({
   ],
 })
 
-if (!process.env.DATABASE_URL) {
+const dbUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
+
+if (!dbUrl) {
   console.warn(
-    `[drizzle.config.ts] Warning: DATABASE_URL is not set for environment '${mode}'.\n` +
-    `Ensure .env.${mode}.local or .env.local exists with DATABASE_URL configured.`
+    `[drizzle.config.ts] Warning: Neither DATABASE_URL_UNPOOLED nor DATABASE_URL is set for environment '${mode}'.\n` +
+    `Ensure .env.${mode}.local or .env.local exists with direct database URL configured.`
   )
 }
 
 export default defineConfig({
   out: './drizzle',
-  schema: './src/db/schema.ts',
+  schema: './src/db/schema/index.ts',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL as string,
+    url: dbUrl as string,
   },
 })
