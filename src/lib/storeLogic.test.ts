@@ -4,11 +4,11 @@ import { CATALOG_PRODUCTS } from "@/data/catalog";
 import {
 	addItemToBag,
 	computeBagSummary,
+	FREE_SHIPPING_THRESHOLD,
 	filterAndSortProducts,
 	filterAndSortProductsWithFacets,
 	formatCurrency,
 	formatLocalizedPrice,
-	FREE_SHIPPING_THRESHOLD,
 	getProductMaterial,
 	removeBagItem,
 	STANDARD_SHIPPING_FEE,
@@ -130,7 +130,10 @@ test("filterAndSortProductsWithFacets filters by multiple facets accurately", ()
 	// Material detection
 	assert.equal(getProductMaterial("100% RWS Wool"), "Virgin Wool");
 	assert.equal(getProductMaterial("100% GCS Cashmere"), "Cashmere");
-	assert.equal(getProductMaterial("100% Organic Cotton Poplin"), "Organic Cotton");
+	assert.equal(
+		getProductMaterial("100% Organic Cotton Poplin"),
+		"Organic Cotton",
+	);
 	assert.equal(getProductMaterial("Smooth calfskin leather"), "Leather");
 
 	// Material facet filter

@@ -1,6 +1,6 @@
 import { adminClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { ac, roles } from "./auth";
+import { ac, roles } from "./auth-access";
 
 export const authClient = createAuthClient({
 	plugins: [

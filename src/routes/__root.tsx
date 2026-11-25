@@ -2,7 +2,9 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
 	createRootRouteWithContext,
+	type ErrorComponentProps,
 	HeadContent,
+	Link,
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
@@ -52,8 +54,51 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 	}),
+	errorComponent: RootErrorComponent,
 	shellComponent: RootDocument,
 });
+
+function RootErrorComponent({ error, reset }: ErrorComponentProps) {
+	const errorMessage =
+		error instanceof Error
+			? error.message
+			: typeof error === "string"
+				? error
+				: "An unexpected error occurred during rendering.";
+
+	return (
+		<div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background text-foreground">
+			<div className="max-w-md w-full text-center space-y-4 p-8 border border-border">
+				<span className="font-display text-xl font-bold tracking-[0.24em] uppercase block">
+					NOCTURA
+				</span>
+				<div className="space-y-1">
+					<h1 className="text-sm font-semibold tracking-wider uppercase">
+						Application Notice
+					</h1>
+					<p className="text-xs text-muted-foreground leading-relaxed">
+						{errorMessage}
+					</p>
+				</div>
+				<div className="pt-4 flex gap-3 justify-center">
+					<button
+						type="button"
+						onClick={() => reset()}
+						className="px-4 py-2 border border-border text-xs uppercase tracking-wider hover:bg-muted/30 transition-colors"
+					>
+						Try Again
+					</button>
+					<Link
+						to="/"
+						className="px-4 py-2 bg-foreground text-background text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+					>
+						Storefront
+					</Link>
+				</div>
+			</div>
+		</div>
+	);
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (

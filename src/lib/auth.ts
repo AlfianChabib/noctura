@@ -1,93 +1,12 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins";
-import { createAccessControl } from "better-auth/plugins/access";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { ac, roles } from "./auth-access";
 
-export type Role =
-	| "customer"
-	| "warehouse_staff"
-	| "cs_staff"
-	| "merchandiser"
-	| "admin";
-
-/**
- * Access Control Statements for Noctura Fashion Store.
- * Merges internal admin resources (user, session) with business domain resources.
- */
-export const statements = {
-	user: [
-		"create",
-		"list",
-		"set-role",
-		"ban",
-		"impersonate",
-		"impersonate-admins",
-		"delete",
-		"set-password",
-		"set-email",
-		"set-phone",
-		"get",
-		"update",
-	],
-	session: ["list", "revoke", "delete"],
-	catalog: ["read", "manage"],
-	orders: ["read", "manage_self", "update_shipments"],
-	qc: ["manage"],
-	rma: ["approve"],
-	dsr: ["read"],
-	profile: ["manage_self"],
-	promotions: ["manage"],
-} as const;
-
-export const ac = createAccessControl(statements);
-
-export const roles = {
-	customer: ac.newRole({
-		catalog: ["read"],
-		orders: ["manage_self"],
-		profile: ["manage_self"],
-	}),
-	warehouse_staff: ac.newRole({
-		orders: ["read", "update_shipments"],
-		qc: ["manage"],
-	}),
-	cs_staff: ac.newRole({
-		orders: ["read"],
-		rma: ["approve"],
-		dsr: ["read"],
-	}),
-	merchandiser: ac.newRole({
-		catalog: ["read", "manage"],
-		promotions: ["manage"],
-	}),
-	admin: ac.newRole({
-		user: [
-			"create",
-			"list",
-			"set-role",
-			"ban",
-			"impersonate",
-			"impersonate-admins",
-			"delete",
-			"set-password",
-			"set-email",
-			"set-phone",
-			"get",
-			"update",
-		],
-		session: ["list", "revoke", "delete"],
-		catalog: ["read", "manage"],
-		orders: ["read", "manage_self", "update_shipments"],
-		qc: ["manage"],
-		rma: ["approve"],
-		dsr: ["read"],
-		profile: ["manage_self"],
-		promotions: ["manage"],
-	}),
-};
+// export { ac, type Role, roles, statements };
 
 export const auth = betterAuth({
 	baseURL:

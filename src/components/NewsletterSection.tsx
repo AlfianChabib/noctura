@@ -73,8 +73,8 @@ export const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 						Sign up for 10% off your first order
 					</h2>
 					<p className="max-w-xl text-xs sm:text-sm text-white/70 leading-relaxed font-sans">
-						Be the first to hear about new collections, seasonal atelier drops, and
-						exclusive member invitations.
+						Be the first to hear about new collections, seasonal atelier drops,
+						and exclusive member invitations.
 					</p>
 				</div>
 
@@ -166,7 +166,7 @@ export const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 
 								<button
 									type="submit"
-									className="group inline-flex h-12 items-center justify-between gap-3 bg-white px-8 text-xs font-mono font-medium uppercase tracking-[0.1em] text-black transition-colors hover:bg-white/88 cursor-pointer rounded-none shrink-0"
+									className="group inline-flex h-12 items-center justify-between gap-3 bg-white px-8 text-xs font-mono font-medium uppercase tracking-widest text-black transition-colors hover:bg-white/88 cursor-pointer rounded-none shrink-0"
 								>
 									<span>Sign Up</span>
 									<ArrowRight className="h-3.5 w-3.5 stroke-[1.5] transition-transform duration-200 group-hover:translate-x-1" />
@@ -175,9 +175,9 @@ export const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 
 							{/* Legal Disclaimer */}
 							<p className="text-[11px] text-white/50 leading-relaxed font-sans max-w-2xl">
-								By signing up, you agree to receive email communication from NOCTURA.
-								You can unsubscribe at any time via the link in our emails. Review our
-								Privacy Policy and Terms & Conditions.
+								By signing up, you agree to receive email communication from
+								NOCTURA. You can unsubscribe at any time via the link in our
+								emails. Review our Privacy Policy and Terms & Conditions.
 							</p>
 						</motion.form>
 					) : (
@@ -198,8 +198,8 @@ export const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 							</div>
 
 							<p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-								Thank you for joining our community. Your 10% exclusive welcome code
-								is ready to apply at checkout.
+								Thank you for joining our community. Your 10% exclusive welcome
+								code is ready to apply at checkout.
 							</p>
 
 							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2">
@@ -214,7 +214,7 @@ export const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 								>
 									{copied ? (
 										<>
-											<Check className="h-3.5 w-3.5 stroke-[2]" />
+											<Check className="h-3.5 w-3.5 stroke-2" />
 											<span>Copied to Clipboard</span>
 										</>
 									) : (
