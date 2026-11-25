@@ -22,15 +22,21 @@ export const MIN_SIGNATURE_TTL_SECONDS = 600; // 10 minutes
 export const DEFAULT_SIGNATURE_TTL_SECONDS = 900; // 15 minutes
 export const MAX_SIGNATURE_TTL_SECONDS = 1800; // 30 minutes
 
-export const slugSchema = z
-	.string()
-	.trim()
-	.min(1, "Category slug is required.")
-	.max(120, "Category slug must not exceed 120 characters.")
-	.regex(
-		/^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-		"Category slug must use lowercase letters, numbers, and hyphens only.",
-	);
+export const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function createSlugSchema(label: string, maxLength: number) {
+	return z
+		.string()
+		.trim()
+		.min(1, `${label} is required.`)
+		.max(maxLength, `${label} must not exceed ${maxLength} characters.`)
+		.regex(
+			SLUG_REGEX,
+			`${label} must use lowercase letters, numbers, and hyphens only.`,
+		);
+}
+
+export const slugSchema = createSlugSchema("Category slug", 120);
 
 const uploadSignatureBaseShape = {
 	fileName: z
