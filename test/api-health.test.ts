@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { app, type AppType } from "../src/server/app";
 import { testClient } from "hono/testing";
 import { api, client } from "../src/lib/api-client";
+import { type AppType, app } from "../src/server/app";
 
 type HealthResponse = {
 	status: "ok" | "error";
 	timestamp: string;
 	uptime: number;
 	env: string;
-}
+};
 
 async function runTests() {
 	console.log("▶ Running TASK-102 Hono API and RPC verification tests...\n");
@@ -25,7 +25,7 @@ async function runTests() {
 		);
 		console.log(`  ✓ X-Response-Time header: ${responseTimeHeader}`);
 
-		const body = (await res.json()) as HealthResponse
+		const body = (await res.json()) as HealthResponse;
 		assert.equal(body.status, "ok", 'body.status must be "ok"');
 		assert.ok(body.timestamp, "body.timestamp must be present");
 		assert.ok(typeof body.uptime === "number", "body.uptime must be a number");
@@ -66,17 +66,20 @@ async function runTests() {
 		console.log("  ✓ RPC client returned status:", data.status);
 		console.log("  ✓ Passed!\n");
 	}
-
-	{
-		console.log("Test 4: Verify singleton api client structure");
-		assert.ok(api, "api export must exist");
-		assert.ok(api.health, "api.health route must exist");
-		assert.equal(typeof api.health.$get, "function", "api.health.$get must be a function");
-		assert.ok(client, "client export must exist");
-		assert.ok(client.api, "client.api must exist");
-		console.log("  ✓ api.health.$get is fully defined as an RPC callable function");
-		console.log("  ✓ Passed!\n");
-	}
+	console.log("Test 4: Verify singleton api client structure");
+	assert.ok(api, "api export must exist");
+	assert.ok(api.health, "api.health route must exist");
+	assert.equal(
+		typeof api.health.$get,
+		"function",
+		"api.health.$get must be a function",
+	);
+	assert.ok(client, "client export must exist");
+	assert.ok(client.api, "client.api must exist");
+	console.log(
+		"  ✓ api.health.$get is fully defined as an RPC callable function",
+	);
+	console.log("  ✓ Passed!\n");
 
 	console.log("🎉 All TASK-102 tests passed successfully!");
 }

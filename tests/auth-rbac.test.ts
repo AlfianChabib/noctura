@@ -1,9 +1,10 @@
 import "dotenv/config";
 import { strict as assert } from "node:assert";
-import { app } from "@/server/app";
-import { ac, auth, type Role, roles, type User } from "@/lib/auth";
-import { requireAuth, requireRole } from "@/server/middleware/auth";
 import type { Context } from "hono";
+import { auth, type User } from "@/lib/auth";
+import { ac, type Role, roles } from "@/lib/auth-access";
+import { app } from "@/server/app";
+import { requireAuth, requireRole } from "@/server/middleware/auth";
 
 // Helper to create mock Hono contexts
 function createMockContext(user: Partial<User> | null, banned = false) {
@@ -83,7 +84,9 @@ async function runTests() {
 			`Role '${roleName}' must have an authorize function`,
 		);
 	}
-	console.log("  ✓ All 5 RBAC roles defined and possess valid authorize functions");
+	console.log(
+		"  ✓ All 5 RBAC roles defined and possess valid authorize functions",
+	);
 
 	// Verify statements
 	assert.deepStrictEqual(roles.customer.statements.catalog, ["read"]);
@@ -122,7 +125,9 @@ async function runTests() {
 		);
 		const json = c.getJson() as { error: string };
 		assert.strictEqual(json.error, "Unauthorized");
-		console.log("  ✓ requireAuth blocks unauthenticated requests with HTTP 401");
+		console.log(
+			"  ✓ requireAuth blocks unauthenticated requests with HTTP 401",
+		);
 	}
 
 	// Test 2.2: Authenticated valid user
@@ -226,7 +231,9 @@ async function runTests() {
 		});
 		assert.strictEqual(nextCalled, false);
 		assert.strictEqual(c.getStatus(), 403);
-		console.log("  ✓ requireRole(['warehouse_staff']) rejects customer with HTTP 403");
+		console.log(
+			"  ✓ requireRole(['warehouse_staff']) rejects customer with HTTP 403",
+		);
 	}
 
 	// Test 3.3: requireRole(['warehouse_staff']) permits 'warehouse_staff'
@@ -305,7 +312,9 @@ async function runTests() {
 		assert.strictEqual(res.status, 401);
 		const data = (await res.json()) as { error: string };
 		assert.strictEqual(data.error, "Unauthorized");
-		console.log("  ✓ GET /api/auth-guard/me responds with 401 Unauthorized without session");
+		console.log(
+			"  ✓ GET /api/auth-guard/me responds with 401 Unauthorized without session",
+		);
 	}
 
 	// Test 4.3: Protected /api/auth-guard/admin without session returns 401
@@ -314,7 +323,9 @@ async function runTests() {
 		assert.strictEqual(res.status, 401);
 		const data = (await res.json()) as { error: string };
 		assert.strictEqual(data.error, "Unauthorized");
-		console.log("  ✓ GET /api/auth-guard/admin responds with 401 Unauthorized without session");
+		console.log(
+			"  ✓ GET /api/auth-guard/admin responds with 401 Unauthorized without session",
+		);
 	}
 
 	// Test 4.4: Better Auth endpoint /api/auth/ok returns { ok: true }

@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { timingMiddleware } from "./middleware/timing";
 import { authGuardRoute } from "./routes/auth-guard";
 import { healthRoute } from "./routes/health";
+import { mediaRoute } from "./routes/media";
 
 export const app = new Hono().basePath("/api");
 
@@ -30,7 +31,8 @@ app.on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw));
 
 const routes = app
 	.route("/health", healthRoute)
-	.route("/auth-guard", authGuardRoute);
+	.route("/auth-guard", authGuardRoute)
+	.route("/media", mediaRoute);
 
 export type AppType = typeof routes;
 export default app;
