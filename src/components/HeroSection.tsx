@@ -22,7 +22,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 			aria-label="Autumn Winter Campaign"
 			className="relative w-full overflow-hidden border-b border-border bg-neutral-900"
 		>
-			<div className="relative mx-auto min-h-[500px] sm:min-h-[580px] lg:h-[680px] w-full max-w-[1440px]">
+			<div className="relative mx-auto min-h-125 sm:min-h-145 lg:h-170 w-full max-w-360">
 				{!imgFailed ? (
 					<motion.img
 						src={HERO_MEDIA.image}
@@ -35,16 +35,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 						className="absolute inset-0 h-full w-full object-cover object-center"
 					/>
 				) : (
-					<div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950" />
+					<div className="absolute inset-0 bg-linear-to-br from-neutral-900 via-neutral-800 to-neutral-950" />
 				)}
 
 				{/* Measured directional scrim ensuring WCAG AA contrast over concrete gallery backdrop */}
 				<div
 					aria-hidden="true"
-					className="absolute inset-0 bg-gradient-to-r from-black/72 via-black/38 to-black/10"
+					className="absolute inset-0 bg-linear-to-r from-black/72 via-black/38 to-black/10"
 				/>
 
-				<div className="relative z-10 flex h-full min-h-[500px] sm:min-h-[580px] lg:min-h-[680px] flex-col justify-end px-4 pb-12 pt-24 sm:px-8 sm:pb-16 lg:justify-center lg:px-12 lg:py-0">
+				<div className="relative z-10 flex h-full min-h-125 sm:min-h-145 lg:min-h-170 flex-col justify-end px-4 pb-12 pt-24 sm:px-8 sm:pb-16 lg:justify-center lg:px-12 lg:py-0">
 					<motion.div
 						initial={{ opacity: 0, y: 12 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 						</p>
 
 						<h1
-							className="font-display text-4xl font-medium leading-[1.08] tracking-[-0.025em] text-white sm:text-5xl lg:text-[54px]"
+							className="font-display text-4xl font-medium leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[54px]"
 							style={{ textWrap: "balance" }}
 						>
 							Architectural Form in Boiled Wool

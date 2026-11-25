@@ -78,7 +78,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
 									src={product.image}
 									alt={product.imageAlt}
 									referrerPolicy="no-referrer"
-									className="h-full max-h-[540px] md:max-h-none w-full object-cover object-top"
+									className="h-full max-h-135 md:max-h-none w-full object-cover object-top"
 								/>
 							</div>
 
@@ -124,7 +124,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
 														aria-label={`Color ${color.name}`}
 														aria-pressed={active}
 														className={cn(
-															"flex h-7 w-7 items-center justify-center rounded-none border p-[3px] transition-colors",
+															"flex h-7 w-7 items-center justify-center rounded-none border p-0.75 transition-colors",
 															active
 																? "border-foreground"
 																: "border-border hover:border-foreground/50",

@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { ATELIER_MEDIA } from "@/data/catalog";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ATELIER_MEDIA } from "@/data/catalog";
 
 interface AtelierSectionProps {
 	onOpenDesignSystem: () => void;
@@ -12,12 +12,14 @@ export const AtelierSection: React.FC<AtelierSectionProps> = ({
 }) => {
 	const [imgFailed, setImgFailed] = useState(false);
 
+	const newLocal =
+		"text-xs font-medium tracking-[0.1em] uppercase text-muted-foreground";
 	return (
 		<section
 			aria-label="Material Study and Architecture"
 			className="border-t border-border bg-background"
 		>
-			<div className="mx-auto grid max-w-[1440px] grid-cols-1 lg:grid-cols-12 items-stretch">
+			<div className="mx-auto grid max-w-360 grid-cols-1 lg:grid-cols-12 items-stretch">
 				<div className="lg:col-span-6 bg-studio overflow-hidden">
 					{!imgFailed ? (
 						<img
@@ -25,10 +27,10 @@ export const AtelierSection: React.FC<AtelierSectionProps> = ({
 							alt={ATELIER_MEDIA.alt}
 							referrerPolicy="no-referrer"
 							onError={() => setImgFailed(true)}
-							className="h-full min-h-[340px] w-full object-cover"
+							className="h-full min-h-85 w-full object-cover"
 						/>
 					) : (
-						<div className="flex h-full min-h-[340px] items-center justify-center bg-secondary text-xs text-muted-foreground">
+						<div className="flex h-full min-h-85 items-center justify-center bg-secondary text-xs text-muted-foreground">
 							Atelier Material Study
 						</div>
 					)}
@@ -36,9 +38,7 @@ export const AtelierSection: React.FC<AtelierSectionProps> = ({
 
 				<div className="lg:col-span-6 flex flex-col justify-center px-4 py-14 sm:px-8 lg:px-16 lg:py-20">
 					<div className="max-w-lg space-y-6">
-						<p className="text-xs font-medium tracking-[0.1em] uppercase text-muted-foreground">
-							The Atelier & System
-						</p>
+						<p className={newLocal}>The Atelier & System</p>
 						<h2
 							className="font-display text-3xl font-medium leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[36px]"
 							style={{ textWrap: "balance" }}

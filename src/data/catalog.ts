@@ -10,6 +10,8 @@ export interface ColorVariant {
 	id: string;
 	name: string;
 	hex: string;
+	image?: string;
+	images?: string[];
 }
 
 export interface Product {
@@ -23,6 +25,7 @@ export interface Product {
 	editorialLabel?: string;
 	image: string;
 	imageAlt: string;
+	images?: string[];
 	colors: ColorVariant[];
 	sizes: string[];
 	composition: string;
@@ -69,10 +72,43 @@ export const CATALOG_PRODUCTS: Product[] = [
 		image: "/src/assets/images/product_wool_coat_1795436579762.jpg",
 		imageAlt:
 			"Structured double-breasted matte black virgin wool overcoat on studio gray backdrop",
+		images: [
+			"/src/assets/images/product_wool_coat_1795436579762.jpg",
+			"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+			"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+		],
 		colors: [
-			{ id: "obsidian", name: "Black", hex: "#121212" },
-			{ id: "charcoal", name: "Dark Charcoal", hex: "#383838" },
-			{ id: "stone", name: "Warm Stone", hex: "#C7C3BC" },
+			{
+				id: "obsidian",
+				name: "Black",
+				hex: "#121212",
+				image: "/src/assets/images/product_wool_coat_1795436579762.jpg",
+				images: [
+					"/src/assets/images/product_wool_coat_1795436579762.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
+			{
+				id: "charcoal",
+				name: "Dark Charcoal",
+				hex: "#383838",
+				image: "/src/assets/images/product_trench_coat_1795436600948.jpg",
+				images: [
+					"/src/assets/images/product_trench_coat_1795436600948.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
+			{
+				id: "stone",
+				name: "Warm Stone",
+				hex: "#C7C3BC",
+				image: "/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+				images: [
+					"/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
 		],
 		sizes: ["XS", "S", "M", "L"],
 		composition:
@@ -94,10 +130,42 @@ export const CATALOG_PRODUCTS: Product[] = [
 		image: "/src/assets/images/product_cashmere_knit_1795436600585.jpg",
 		imageAlt:
 			"Relaxed pale stone-gray heavy ribbed cashmere crewneck sweater styled with black trousers",
+		images: [
+			"/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+			"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+			"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+		],
 		colors: [
-			{ id: "chalk-stone", name: "Pale Stone", hex: "#D4D2CC" },
-			{ id: "black", name: "Black", hex: "#141414" },
-			{ id: "ash", name: "Ash Melange", hex: "#8A8A88" },
+			{
+				id: "chalk-stone",
+				name: "Pale Stone",
+				hex: "#D4D2CC",
+				image: "/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+				images: [
+					"/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
+			{
+				id: "black",
+				name: "Black",
+				hex: "#141414",
+				image: "/src/assets/images/product_wool_coat_1795436579762.jpg",
+				images: [
+					"/src/assets/images/product_wool_coat_1795436579762.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
+			{
+				id: "ash",
+				name: "Ash Melange",
+				hex: "#8A8A88",
+				image: "/src/assets/images/product_tailored_trousers_1795436581972.jpg",
+				images: [
+					"/src/assets/images/product_tailored_trousers_1795436581972.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
 		],
 		sizes: ["XS", "S", "M", "L"],
 		composition: "100% Good Cashmere Standard (GCS) 5-gauge two-ply yarn.",
@@ -117,9 +185,32 @@ export const CATALOG_PRODUCTS: Product[] = [
 		image: "/src/assets/images/product_poplin_shirt_1795436579408.jpg",
 		imageAlt:
 			"Oversized crisp pure white organic cotton poplin shirt with wide sculptural cuffs",
+		images: [
+			"/src/assets/images/product_poplin_shirt_1795436579408.jpg",
+			"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+			"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+		],
 		colors: [
-			{ id: "optic-white", name: "Optic White", hex: "#FAFAFA" },
-			{ id: "ink", name: "Black", hex: "#111111" },
+			{
+				id: "optic-white",
+				name: "Optic White",
+				hex: "#FAFAFA",
+				image: "/src/assets/images/product_poplin_shirt_1795436579408.jpg",
+				images: [
+					"/src/assets/images/product_poplin_shirt_1795436579408.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
+			{
+				id: "ink",
+				name: "Black",
+				hex: "#111111",
+				image: "/src/assets/images/product_wool_coat_1795436579762.jpg",
+				images: [
+					"/src/assets/images/product_wool_coat_1795436579762.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
 		],
 		sizes: ["XS", "S", "M", "L"],
 		composition:
@@ -140,9 +231,31 @@ export const CATALOG_PRODUCTS: Product[] = [
 		image: "/src/assets/images/product_tailored_trousers_1795436581972.jpg",
 		imageAlt:
 			"Wide-leg deep pleated charcoal wool tailored trousers paired with black merino mock-neck",
+		images: [
+			"/src/assets/images/product_tailored_trousers_1795436581972.jpg",
+			"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+		],
 		colors: [
-			{ id: "graphite", name: "Charcoal Melange", hex: "#3D3F42" },
-			{ id: "black", name: "Black", hex: "#141414" },
+			{
+				id: "graphite",
+				name: "Charcoal Melange",
+				hex: "#3D3F42",
+				image: "/src/assets/images/product_tailored_trousers_1795436581972.jpg",
+				images: [
+					"/src/assets/images/product_tailored_trousers_1795436581972.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
+			{
+				id: "black",
+				name: "Black",
+				hex: "#141414",
+				image: "/src/assets/images/product_wool_coat_1795436579762.jpg",
+				images: [
+					"/src/assets/images/product_wool_coat_1795436579762.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
 		],
 		sizes: ["XS", "S", "M", "L", "XL"],
 		composition:
@@ -164,9 +277,31 @@ export const CATALOG_PRODUCTS: Product[] = [
 		image: "/src/assets/images/product_leather_tote_1795436590397.jpg",
 		imageAlt:
 			"Sculptural matte black folded smooth calfskin architectural tote bag on travertine stone plinth",
+		images: [
+			"/src/assets/images/product_leather_tote_1795436590397.jpg",
+			"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+		],
 		colors: [
-			{ id: "matte-black", name: "Matte Black", hex: "#121212" },
-			{ id: "espresso", name: "Deep Slate", hex: "#2D2E30" },
+			{
+				id: "matte-black",
+				name: "Matte Black",
+				hex: "#121212",
+				image: "/src/assets/images/product_leather_tote_1795436590397.jpg",
+				images: [
+					"/src/assets/images/product_leather_tote_1795436590397.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
+			{
+				id: "espresso",
+				name: "Deep Slate",
+				hex: "#2D2E30",
+				image: "/src/assets/images/product_trench_coat_1795436600948.jpg",
+				images: [
+					"/src/assets/images/product_trench_coat_1795436600948.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
 		],
 		sizes: ["One Size"],
 		composition:
@@ -188,10 +323,42 @@ export const CATALOG_PRODUCTS: Product[] = [
 		image: "/src/assets/images/product_trench_coat_1795436600948.jpg",
 		imageAlt:
 			"Longline dark slate-charcoal cotton gabardine trench coat with clean concealed placket",
+		images: [
+			"/src/assets/images/product_trench_coat_1795436600948.jpg",
+			"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+			"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+		],
 		colors: [
-			{ id: "slate", name: "Dark Slate", hex: "#393E41" },
-			{ id: "black", name: "Black", hex: "#121212" },
-			{ id: "putty", name: "Putty Gray", hex: "#B9B7B1" },
+			{
+				id: "slate",
+				name: "Dark Slate",
+				hex: "#393E41",
+				image: "/src/assets/images/product_trench_coat_1795436600948.jpg",
+				images: [
+					"/src/assets/images/product_trench_coat_1795436600948.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
+			{
+				id: "black",
+				name: "Black",
+				hex: "#121212",
+				image: "/src/assets/images/product_wool_coat_1795436579762.jpg",
+				images: [
+					"/src/assets/images/product_wool_coat_1795436579762.jpg",
+					"/src/assets/images/hero_cos_campaign_1795436599958.jpg",
+				],
+			},
+			{
+				id: "putty",
+				name: "Putty Gray",
+				hex: "#B9B7B1",
+				image: "/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+				images: [
+					"/src/assets/images/product_cashmere_knit_1795436600585.jpg",
+					"/src/assets/images/editorial_atelier_tailoring_1795436601242.jpg",
+				],
+			},
 		],
 		sizes: ["S", "M", "L", "XL"],
 		composition:

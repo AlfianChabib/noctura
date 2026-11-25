@@ -1,6 +1,18 @@
 import type { Product, ProductCategory } from "@/data/catalog";
 
-export type SortOption = "featured" | "price-asc" | "price-desc";
+export type SortOption = "featured" | "newest" | "price-asc" | "price-desc";
+
+export type GridDensity = "2" | "3" | "4" | "minimal";
+
+export interface FacetFilterOptions {
+	category?: ProductCategory | "All";
+	categories?: string[];
+	materials?: string[];
+	sizes?: string[];
+	colors?: string[];
+	minPrice?: number;
+	maxPrice?: number;
+}
 
 export interface BagItem {
 	key: string;
@@ -36,21 +48,73 @@ export function buildBagItemKey(
 	return `${productId}__${colorName.toLowerCase()}__${size.toLowerCase()}`;
 }
 
-export function filterAndSortProducts(
+export function getProductMaterial(composition: string): string {
+	const lower = composition.toLowerCase();
+	if (lower.includes("cashmere")) return "Cashmere";
+	if (lower.includes("wool")) return "Virgin Wool";
+	if (lower.includes("leather") || lower.includes("calfskin")) return "Leather";
+	if (lower.includes("gabardine")) return "Cotton Gabardine";
+	if (lower.includes("cotton")) return "Organic Cotton";
+	return "Other";
+}
+
+export function filterAndSortProductsWithFacets(
 	products: Product[],
-	category: ProductCategory,
+	facets: FacetFilterOptions,
 	searchQuery: string,
-	sortBy: SortOption,
+	sortBy: SortOption = "featured",
 ): Product[] {
 	const normalizedQuery = searchQuery.trim().toLowerCase();
 
 	const filtered = products.filter((product) => {
-		const matchesCategory =
-			category === "All" ||
-			product.category === category ||
-			product.tags.includes(category);
+		if (facets.category && facets.category !== "All") {
+			const matchesCategory =
+				product.category === facets.category ||
+				product.tags.includes(facets.category);
+			if (!matchesCategory) return false;
+		}
 
-		if (!matchesCategory) return false;
+		if (facets.categories && facets.categories.length > 0) {
+			const matchesAny = facets.categories.some(
+				(cat) =>
+					cat === "All" ||
+					product.category === cat ||
+					product.tags.includes(cat as ProductCategory),
+			);
+			if (!matchesAny) return false;
+		}
+
+		if (facets.materials && facets.materials.length > 0) {
+			const productMaterial = getProductMaterial(product.composition);
+			const matchesMaterial = facets.materials.includes(productMaterial);
+			if (!matchesMaterial) return false;
+		}
+
+		if (facets.sizes && facets.sizes.length > 0) {
+			const matchesSize = facets.sizes.some((size) =>
+				product.sizes.includes(size),
+			);
+			if (!matchesSize) return false;
+		}
+
+		if (facets.colors && facets.colors.length > 0) {
+			const matchesColor = product.colors.some((color) =>
+				facets.colors?.some(
+					(c) =>
+						color.name.toLowerCase().includes(c.toLowerCase()) ||
+						c.toLowerCase().includes(color.name.toLowerCase()),
+				),
+			);
+			if (!matchesColor) return false;
+		}
+
+		if (facets.minPrice !== undefined && product.price < facets.minPrice) {
+			return false;
+		}
+		if (facets.maxPrice !== undefined && product.price > facets.maxPrice) {
+			return false;
+		}
+
 		if (!normalizedQuery) return true;
 
 		const searchableText = [
@@ -71,11 +135,32 @@ export function filterAndSortProducts(
 		sorted.sort((a, b) => a.price - b.price || a.featuredRank - b.featuredRank);
 	} else if (sortBy === "price-desc") {
 		sorted.sort((a, b) => b.price - a.price || a.featuredRank - b.featuredRank);
+	} else if (sortBy === "newest") {
+		sorted.sort((a, b) => {
+			const aIsNew = a.editorialLabel === "New Arrival" ? 1 : 0;
+			const bIsNew = b.editorialLabel === "New Arrival" ? 1 : 0;
+			if (aIsNew !== bIsNew) return bIsNew - aIsNew;
+			return a.featuredRank - b.featuredRank;
+		});
 	} else {
 		sorted.sort((a, b) => a.featuredRank - b.featuredRank);
 	}
 
 	return sorted;
+}
+
+export function filterAndSortProducts(
+	products: Product[],
+	category: ProductCategory,
+	searchQuery: string,
+	sortBy: SortOption,
+): Product[] {
+	return filterAndSortProductsWithFacets(
+		products,
+		{ category },
+		searchQuery,
+		sortBy,
+	);
 }
 
 export function addItemToBag(
@@ -167,9 +252,111 @@ export function toggleWishlistId(
 	return [...wishlist, productId];
 }
 
+export interface CountryConfig {
+	code: string;
+	name: string;
+	region: "Asia Pacific" | "Europe" | "North America" | "Middle East";
+	currency: string;
+	currencySymbol: string;
+	rate: number;
+	flag: string;
+}
+
+export const SUPPORTED_COUNTRIES: CountryConfig[] = [
+	{
+		code: "ID",
+		name: "Indonesia",
+		region: "Asia Pacific",
+		currency: "USD",
+		currencySymbol: "$",
+		rate: 1.0,
+		flag: "🇮🇩",
+	},
+	{
+		code: "SG",
+		name: "Singapore",
+		region: "Asia Pacific",
+		currency: "SGD",
+		currencySymbol: "S$",
+		rate: 1.35,
+		flag: "🇸🇬",
+	},
+	{
+		code: "JP",
+		name: "Japan",
+		region: "Asia Pacific",
+		currency: "JPY",
+		currencySymbol: "¥",
+		rate: 155,
+		flag: "🇯🇵",
+	},
+	{
+		code: "GB",
+		name: "United Kingdom",
+		region: "Europe",
+		currency: "GBP",
+		currencySymbol: "£",
+		rate: 0.79,
+		flag: "🇬🇧",
+	},
+	{
+		code: "DE",
+		name: "Germany",
+		region: "Europe",
+		currency: "EUR",
+		currencySymbol: "€",
+		rate: 0.92,
+		flag: "🇩🇪",
+	},
+	{
+		code: "FR",
+		name: "France",
+		region: "Europe",
+		currency: "EUR",
+		currencySymbol: "€",
+		rate: 0.92,
+		flag: "🇫🇷",
+	},
+	{
+		code: "US",
+		name: "United States",
+		region: "North America",
+		currency: "USD",
+		currencySymbol: "$",
+		rate: 1.0,
+		flag: "🇺🇸",
+	},
+	{
+		code: "AE",
+		name: "United Arab Emirates",
+		region: "Middle East",
+		currency: "AED",
+		currencySymbol: "AED",
+		rate: 3.67,
+		flag: "🇦🇪",
+	},
+];
+
+export function formatLocalizedPrice(
+	amountInUSD: number,
+	country: CountryConfig = SUPPORTED_COUNTRIES[0],
+): string {
+	const converted = Math.round(amountInUSD * country.rate);
+	if (country.currency === "USD") {
+		return `$${converted.toLocaleString("en-US")}`;
+	}
+	if (country.currency === "GBP") {
+		return `£${converted.toLocaleString("en-US")}`;
+	}
+	if (country.currency === "EUR") {
+		return `€${converted.toLocaleString("en-US")}`;
+	}
+	if (country.currency === "JPY") {
+		return `¥${converted.toLocaleString("en-US")}`;
+	}
+	return `${country.currencySymbol} ${converted.toLocaleString("en-US")}`;
+}
+
 export function formatCurrency(amount: number): string {
-	return `$${amount.toLocaleString("en-US", {
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0,
-	})}`;
+	return formatLocalizedPrice(amount, SUPPORTED_COUNTRIES[0]);
 }

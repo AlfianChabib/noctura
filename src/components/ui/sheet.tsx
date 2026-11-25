@@ -51,7 +51,7 @@ const SheetContent = React.forwardRef<
 				animate="visible"
 				exit="exit"
 				className={cn(
-					"fixed inset-y-0 z-50 flex w-full flex-col rounded-none bg-background text-foreground focus:outline-none sm:max-w-[440px]",
+					"fixed inset-y-0 z-50 flex w-full flex-col rounded-none bg-background text-foreground focus:outline-none sm:max-w-110",
 					side === "right"
 						? "right-0 border-l border-border"
 						: "left-0 border-r border-border",

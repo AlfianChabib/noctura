@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Globe, Menu, Search, ShoppingBag, X } from "lucide-react";
 import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
 	type ProductCategory,
 } from "@/data/catalog";
 import { COS_EASE, COS_SPRING, dropdownFadeVariants } from "@/lib/motion";
+import type { CountryConfig } from "@/lib/storeLogic";
 import { cn } from "@/lib/utils";
 
 export type AppView = "storefront" | "design-system";
@@ -34,6 +35,9 @@ interface NavbarProps {
 	onNavigateView: (view: AppView) => void;
 	onSearchChange: (value: string) => void;
 	onOpenBag: () => void;
+	onOpenSearchModal?: () => void;
+	onOpenCountryModal?: () => void;
+	activeCountry?: CountryConfig;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -45,6 +49,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 	onNavigateView,
 	onSearchChange,
 	onOpenBag,
+	onOpenSearchModal,
+	onOpenCountryModal,
+	activeCountry,
 }) => {
 	const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 	const [searchOpen, setSearchOpen] = useState(false);
@@ -209,13 +216,31 @@ export const Navbar: React.FC<NavbarProps> = ({
 					</NavigationMenuList>
 				</NavigationMenu>
 
-				{/* Zone 3: Search & Primary Shopping Bag Action */}
-				<div className="flex items-center gap-2 shrink-0">
+				{/* Zone 3: Country/Currency, Search & Primary Shopping Bag Action */}
+				<div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+					{activeCountry && (
+						<button
+							type="button"
+							onClick={onOpenCountryModal}
+							aria-label={`Current shipping destination: ${activeCountry.name}. Currency: ${activeCountry.currency}. Click to switch country and currency.`}
+							className="hidden sm:inline-flex h-10 items-center gap-1.5 px-2.5 text-[11px] font-mono tracking-wider text-foreground/80 hover:text-foreground hover:bg-secondary transition-colors"
+						>
+							<Globe className="h-3.5 w-3.5 stroke-[1.5]" />
+							<span>
+								{activeCountry.code} ({activeCountry.currencySymbol})
+							</span>
+						</button>
+					)}
+
 					<button
 						type="button"
 						onClick={() => {
 							setOpenMenuId(null);
-							setSearchOpen((prev) => !prev);
+							if (onOpenSearchModal) {
+								onOpenSearchModal();
+							} else {
+								setSearchOpen((prev) => !prev);
+							}
 						}}
 						aria-label={searchOpen ? "Close search" : "Search collection"}
 						aria-expanded={searchOpen}
@@ -393,6 +418,24 @@ export const Navbar: React.FC<NavbarProps> = ({
 								>
 									<span>Design System</span>
 								</button>
+								{activeCountry && (
+									<button
+										type="button"
+										onClick={() => {
+											setMobileNavOpen(false);
+											onOpenCountryModal?.();
+										}}
+										className="flex h-12 items-center justify-between text-left text-sm font-medium text-foreground"
+									>
+										<span className="flex items-center gap-2">
+											<Globe className="h-4 w-4 stroke-[1.5]" />
+											Shipping Location
+										</span>
+										<span className="font-mono text-xs text-muted-foreground">
+											{activeCountry.name} ({activeCountry.code})
+										</span>
+									</button>
+								)}
 							</nav>
 						</SheetContent>
 					)}

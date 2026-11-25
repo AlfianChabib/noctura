@@ -1,20 +1,20 @@
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Minus, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
 	Sheet,
 	SheetContent,
 	SheetDescription,
 	SheetTitle,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { COS_EASE } from "@/lib/motion";
 import {
+	type BagItem,
 	computeBagSummary,
 	formatCurrency,
-	type BagItem,
 } from "@/lib/storeLogic";
-import { COS_EASE } from "@/lib/motion";
 
 interface ShoppingBagSheetProps {
 	open: boolean;
@@ -63,8 +63,8 @@ export const ShoppingBagSheet: React.FC<ShoppingBagSheetProps> = ({
 		onOpenChange(nextOpen);
 	};
 
-	const handleCheckoutSubmit = (event: React.FormEvent) => {
-		event.preventDefault();
+	const handleCheckoutSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
 		if (!fullName.trim() || !email.trim() || !address.trim()) {
 			setFormError("Please complete your name, email, and delivery address.");
 			return;
@@ -113,7 +113,7 @@ export const ShoppingBagSheet: React.FC<ShoppingBagSheetProps> = ({
 							</div>
 
 							{step === "bag" && summary.subtotal > 0 && (
-								<div className="mt-3.5 h-[2px] w-full bg-secondary overflow-hidden">
+								<div className="mt-3.5 h-0.5 w-full bg-secondary overflow-hidden">
 									<motion.div
 										initial={{ scaleX: 0 }}
 										animate={{ scaleX: summary.freeShippingProgress / 100 }}
@@ -129,7 +129,7 @@ export const ShoppingBagSheet: React.FC<ShoppingBagSheetProps> = ({
 							<>
 								<div className="flex-1 overflow-y-auto px-6 py-5">
 									{items.length === 0 ? (
-										<div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center space-y-4">
+										<div className="flex h-full min-h-65 flex-col items-center justify-center text-center space-y-4">
 											<p className="font-display text-base font-medium text-foreground">
 												Your shopping bag is empty
 											</p>

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { Bookmark, Check } from "lucide-react";
+import { Bookmark, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import type * as React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ColorVariant, Product } from "@/data/catalog";
 import { COS_IMAGE_TRANSITION, quickAddVariants } from "@/lib/motion";
@@ -14,6 +14,8 @@ interface ProductCardProps {
 	onToggleSave: (productId: string) => void;
 	onQuickAdd: (product: Product, color: ColorVariant, size: string) => void;
 	onOpenDetail: (product: Product, selectedColor: ColorVariant) => void;
+	minimalMode?: boolean;
+	formattedPrice?: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -22,13 +24,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 	onToggleSave,
 	onQuickAdd,
 	onOpenDetail,
+	minimalMode = false,
+	formattedPrice,
 }) => {
 	const [selectedColor, setSelectedColor] = useState<ColorVariant>(
 		product.colors[0],
 	);
+	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [isHovered, setIsHovered] = useState(false);
 	const [justAddedSize, setJustAddedSize] = useState<string | null>(null);
 	const [imgFailed, setImgFailed] = useState(false);
+
+	const galleryImages = useMemo(() => {
+		if (selectedColor.images && selectedColor.images.length > 0) {
+			return selectedColor.images;
+		}
+		if (selectedColor.image) {
+			const otherImages =
+				product.images?.filter((img) => img !== selectedColor.image) || [];
+			return [selectedColor.image, ...otherImages];
+		}
+		if (product.images && product.images.length > 0) {
+			return product.images;
+		}
+		return [product.image];
+	}, [selectedColor, product.images, product.image]);
+
+	const activeIndex = Math.min(
+		currentImageIndex,
+		Math.max(0, galleryImages.length - 1),
+	);
+	const activeImage = galleryImages[activeIndex] || product.image;
 
 	const handleQuickAddClick = (
 		event: React.MouseEvent<HTMLButtonElement>,
@@ -40,6 +66,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 		window.setTimeout(() => {
 			setJustAddedSize((current) => (current === size ? null : current));
 		}, 1200);
+	};
+
+	const handleSelectColor = (
+		e: React.MouseEvent<HTMLButtonElement>,
+		color: ColorVariant,
+	) => {
+		e.stopPropagation();
+		setSelectedColor(color);
+		setCurrentImageIndex(0);
 	};
 
 	return (
@@ -58,7 +93,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 				>
 					{!imgFailed ? (
 						<motion.img
-							src={product.image}
+							key={activeImage}
+							src={activeImage}
 							alt={product.imageAlt}
 							referrerPolicy="no-referrer"
 							onError={() => setImgFailed(true)}
@@ -80,6 +116,67 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 						</div>
 					)}
 				</button>
+
+				{/* Top Segmented Scroll Indicator (2px dashes) — COS Style */}
+				{galleryImages.length > 1 && (
+					<div className="absolute top-2.5 inset-x-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-auto">
+						{galleryImages.map((imageSrc, idx) => (
+							<button
+								key={`${product.id}-segment-${imageSrc}`}
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setCurrentImageIndex(idx);
+								}}
+								aria-label={`Jump to image ${idx + 1} of ${galleryImages.length}`}
+								className="h-3 flex-1 flex items-center cursor-pointer focus:outline-none"
+							>
+								<span
+									className={cn(
+										"h-0.5 w-full transition-colors duration-150",
+										idx === activeIndex
+											? "bg-foreground shadow-xs"
+											: "bg-foreground/25 hover:bg-foreground/50",
+									)}
+								/>
+							</button>
+						))}
+					</div>
+				)}
+
+				{/* Left & Right In-Card Arrow Touchpoints (mix-blend-difference) */}
+				{galleryImages.length > 1 && (
+					<>
+						{activeIndex > 0 && (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setCurrentImageIndex((prev) => Math.max(0, prev - 1));
+								}}
+								aria-label="Previous product image"
+								className="absolute left-0 inset-y-0 w-10 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 cursor-pointer focus:outline-none focus-visible:opacity-100"
+							>
+								<ChevronLeft className="h-6 w-6 stroke-[1.5] text-white mix-blend-difference" />
+							</button>
+						)}
+						{activeIndex < galleryImages.length - 1 && (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setCurrentImageIndex((prev) =>
+										Math.min(galleryImages.length - 1, prev + 1),
+									);
+								}}
+								aria-label="Next product image"
+								className="absolute right-0 inset-y-0 w-10 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 cursor-pointer focus:outline-none focus-visible:opacity-100"
+							>
+								<ChevronRight className="h-6 w-6 stroke-[1.5] text-white mix-blend-difference" />
+							</button>
+						)}
+					</>
+				)}
 
 				{/* Minimal Save / Bookmark Affordance */}
 				<motion.button
@@ -145,75 +242,83 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 				</motion.div>
 			</div>
 
-			{/* Product Typography & Swatch Metadata — Identical Baseline Alignment */}
-			<CardContent className="flex flex-1 flex-col justify-between pt-3.5 pb-1">
-				<div className="space-y-1">
-					<div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-						<button
-							type="button"
-							onClick={() => onOpenDetail(product, selectedColor)}
-							className="text-left font-display text-[13px] sm:text-[14px] font-medium leading-snug tracking-[-0.01em] text-foreground transition-colors hover:text-foreground/70 focus-visible:outline-none focus-visible:underline"
-						>
-							{product.title}
-						</button>
-						<span className="shrink-0 font-sans text-[13px] sm:text-[14px] font-normal tabular-nums text-foreground">
-							{formatCurrency(product.price)}
+			{/* Product Typography & Swatch Metadata — Hidden in Minimal Lookbook Mode */}
+			{!minimalMode && (
+				<CardContent className="flex flex-1 flex-col justify-between pt-3.5 pb-1">
+					<div className="space-y-1">
+						<div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+							<button
+								type="button"
+								onClick={() => onOpenDetail(product, selectedColor)}
+								className="text-left font-display text-[13px] sm:text-[14px] font-medium leading-snug tracking-[-0.01em] text-foreground transition-colors hover:text-foreground/70 focus-visible:outline-none focus-visible:underline"
+							>
+								{product.title}
+							</button>
+							<span className="shrink-0 font-sans text-[13px] sm:text-[14px] font-normal tabular-nums text-foreground">
+								{formattedPrice ?? formatCurrency(product.price)}
+							</span>
+						</div>
+
+						{/* Unboxed Metadata (Zero Pills) */}
+						<p className="text-[11px] sm:text-[12px] leading-relaxed text-muted-foreground">
+							<span>{product.subtitle}</span>
+							{product.editorialLabel && (
+								<>
+									<span aria-hidden="true" className="mx-1.5">
+										·
+									</span>
+									<span className="whitespace-nowrap text-foreground/80">
+										{product.editorialLabel}
+									</span>
+								</>
+							)}
+						</p>
+					</div>
+
+					{/* Sharp Square Color Swatches — 20px x 20px COS Style with Click-to-Swap */}
+					<div className="mt-3 flex items-center gap-2.5">
+						<div className="flex items-center gap-1.5">
+							{product.colors.slice(0, 4).map((color) => {
+								const active = color.id === selectedColor.id;
+								return (
+									<button
+										key={color.id}
+										type="button"
+										aria-pressed={active}
+										aria-label={`Select color ${color.name} for ${product.title}`}
+										onClick={(e) => handleSelectColor(e, color)}
+										className={cn(
+											"flex h-5 w-5 items-center justify-center rounded-none border p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0 cursor-pointer",
+											active
+												? "border-foreground"
+												: "border-transparent hover:border-foreground/40",
+										)}
+									>
+										<span
+											className="block h-full w-full border border-black/15 dark:border-white/15"
+											style={{ backgroundColor: color.hex }}
+										/>
+									</button>
+								);
+							})}
+
+							{product.colors.length > 4 && (
+								<button
+									type="button"
+									onClick={() => onOpenDetail(product, selectedColor)}
+									aria-label={`View all ${product.colors.length} color variants`}
+									className="flex h-5 min-w-5 px-1 items-center justify-center rounded-none border border-border text-[10px] font-mono text-muted-foreground hover:text-foreground hover:border-foreground transition-colors shrink-0"
+								>
+									+{product.colors.length - 4}
+								</button>
+							)}
+						</div>
+						<span className="text-[11px] text-muted-foreground truncate">
+							{selectedColor.name}
 						</span>
 					</div>
-
-					{/* Unboxed Metadata (Zero Pills) */}
-					<p className="text-[11px] sm:text-[12px] leading-relaxed text-muted-foreground">
-						<span>{product.subtitle}</span>
-						{product.editorialLabel && (
-							<>
-								<span aria-hidden="true" className="mx-1.5">
-									·
-								</span>
-								<span className="whitespace-nowrap text-foreground/80">
-									{product.editorialLabel}
-								</span>
-							</>
-						)}
-					</p>
-				</div>
-
-				{/* Sharp Square Color Swatches */}
-				<div className="mt-3 flex items-center gap-2.5">
-					<div
-						className="flex items-center gap-1.5"
-						role="radiogroup"
-						aria-label={`Colors for ${product.title}`}
-					>
-						{product.colors.map((color) => {
-							const active = color.id === selectedColor.id;
-							return (
-								<motion.button
-									key={color.id}
-									type="button"
-									role="radio"
-									aria-checked={active}
-									aria-label={`Select ${color.name} for ${product.title}`}
-									onClick={() => setSelectedColor(color)}
-									className={cn(
-										"flex h-4 w-4 items-center justify-center rounded-none border p-0.5 transition-colors",
-										active
-											? "border-foreground"
-											: "border-transparent hover:border-foreground/40",
-									)}
-								>
-									<span
-										className="block h-full w-full border border-black/15 dark:border-white/15"
-										style={{ backgroundColor: color.hex }}
-									/>
-								</motion.button>
-							);
-						})}
-					</div>
-					<span className="text-[11px] text-muted-foreground">
-						{selectedColor.name}
-					</span>
-				</div>
-			</CardContent>
+				</CardContent>
+			)}
 		</Card>
 	);
 };

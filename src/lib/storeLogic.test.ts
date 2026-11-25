@@ -5,10 +5,14 @@ import {
 	addItemToBag,
 	computeBagSummary,
 	filterAndSortProducts,
+	filterAndSortProductsWithFacets,
 	formatCurrency,
+	formatLocalizedPrice,
 	FREE_SHIPPING_THRESHOLD,
+	getProductMaterial,
 	removeBagItem,
 	STANDARD_SHIPPING_FEE,
+	SUPPORTED_COUNTRIES,
 	toggleWishlistId,
 	updateBagItemQuantity,
 } from "./storeLogic";
@@ -120,4 +124,69 @@ test("removeBagItem and toggleWishlistId behave deterministically", () => {
 	saved = toggleWishlistId(saved, coat.id);
 	assert.deepEqual(saved, []);
 	assert.equal(formatCurrency(1250), "$1,250");
+});
+
+test("filterAndSortProductsWithFacets filters by multiple facets accurately", () => {
+	// Material detection
+	assert.equal(getProductMaterial("100% RWS Wool"), "Virgin Wool");
+	assert.equal(getProductMaterial("100% GCS Cashmere"), "Cashmere");
+	assert.equal(getProductMaterial("100% Organic Cotton Poplin"), "Organic Cotton");
+	assert.equal(getProductMaterial("Smooth calfskin leather"), "Leather");
+
+	// Material facet filter
+	const cashmereProducts = filterAndSortProductsWithFacets(
+		CATALOG_PRODUCTS,
+		{ materials: ["Cashmere"] },
+		"",
+		"featured",
+	);
+	assert.equal(cashmereProducts.length, 1);
+	assert.equal(cashmereProducts[0].id, "heavy-ribbed-cashmere-crewneck");
+
+	// Size facet filter
+	const xlProducts = filterAndSortProductsWithFacets(
+		CATALOG_PRODUCTS,
+		{ sizes: ["XL"] },
+		"",
+		"featured",
+	);
+	assert.ok(xlProducts.length >= 2);
+	assert.ok(xlProducts.every((p) => p.sizes.includes("XL")));
+
+	// Price range filter
+	const budgetProducts = filterAndSortProductsWithFacets(
+		CATALOG_PRODUCTS,
+		{ minPrice: 100, maxPrice: 200 },
+		"",
+		"price-asc",
+	);
+	assert.ok(budgetProducts.length >= 2);
+	assert.ok(budgetProducts.every((p) => p.price >= 100 && p.price <= 200));
+
+	// Newest sort
+	const newestSorted = filterAndSortProductsWithFacets(
+		CATALOG_PRODUCTS,
+		{},
+		"",
+		"newest",
+	);
+	assert.equal(newestSorted[0].editorialLabel, "New Arrival");
+});
+
+test("formatLocalizedPrice formats localized currencies accurately", () => {
+	const uk = SUPPORTED_COUNTRIES.find((c) => c.code === "GB");
+	assert.ok(uk);
+	assert.equal(formatLocalizedPrice(100, uk), "£79");
+
+	const japan = SUPPORTED_COUNTRIES.find((c) => c.code === "JP");
+	assert.ok(japan);
+	assert.equal(formatLocalizedPrice(100, japan), "¥15,500");
+
+	const euro = SUPPORTED_COUNTRIES.find((c) => c.code === "DE");
+	assert.ok(euro);
+	assert.equal(formatLocalizedPrice(100, euro), "€92");
+
+	const us = SUPPORTED_COUNTRIES.find((c) => c.code === "US");
+	assert.ok(us);
+	assert.equal(formatLocalizedPrice(100, us), "$100");
 });
