@@ -1,5 +1,6 @@
-import { config } from 'dotenv'
-import { defineConfig } from 'drizzle-kit'
+import { config } from "dotenv";
+import { defineConfig } from "drizzle-kit";
+import { normalizeDatabaseUrl } from "./src/db/connection-url.ts";
 
 // Determine the active mode: APP_ENV, NODE_ENV, or default to 'development'
 const mode = process.env.APP_ENV || process.env.NODE_ENV || 'development'
@@ -18,7 +19,8 @@ config({
   ],
 })
 
-const dbUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
+const rawDbUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+const dbUrl = rawDbUrl ? normalizeDatabaseUrl(rawDbUrl) : undefined;
 
 if (!dbUrl) {
   console.warn(

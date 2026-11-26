@@ -7,7 +7,7 @@
 
 # Database
 DATABASE_URL="postgresql://username:password@localhost:5432/noctura_dev"
-DATABASE_URL_POOLER="postgresql://username:password@localhost:5432/noctura_dev?sslmode=require"
+DATABASE_URL_POOLER="postgresql://username:password@localhost:5432/noctura_dev?sslmode=verify-full"
 
 # Better Auth (Min 32 characters)
 BETTER_AUTH_SECRET="1a40a6aab8acbb9494d61d1b08e2381c7048e597e8706aacd5829bf5171d1e80"

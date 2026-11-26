@@ -6,8 +6,6 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { ac, roles } from "./auth-access";
 
-// export { ac, type Role, roles, statements };
-
 export const auth = betterAuth({
 	baseURL:
 		process.env.BETTER_AUTH_URL ||
@@ -23,7 +21,9 @@ export const auth = betterAuth({
 	advanced: {
 		database: {
 			generateId: "uuid",
-			joins: true,
+			// @better-auth/drizzle-adapter passes SQL chunks to db.query.*.findFirst,
+			// which throws `Unknown relational filter field: "queryChunks"` on drizzle-orm v1 RQB v2.
+			joins: false,
 		},
 	},
 	user: {
@@ -85,7 +85,7 @@ export const auth = betterAuth({
 			defaultRole: "customer",
 			adminRoles: ["admin"],
 		}),
-		tanstackStartCookies(), // WAJIB DI URUTAN TERAKHIR
+		tanstackStartCookies(),
 	],
 });
 

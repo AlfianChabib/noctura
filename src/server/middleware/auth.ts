@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono";
-import { auth, type Role, type Session, type User } from "@/lib/auth";
+import { auth, type Session, type User } from "@/lib/auth";
+import type { Role } from "@/lib/auth-access";
 
 export interface AuthVariables {
 	user: User;
