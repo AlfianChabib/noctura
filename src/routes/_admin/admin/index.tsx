@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { CATALOG_PRODUCTS } from "@/data/catalog";
 
-export const Route = createFileRoute("/_admin/admin")({
+export const Route = createFileRoute("/_admin/admin/")({
 	component: AdminDashboardPage,
 });
 

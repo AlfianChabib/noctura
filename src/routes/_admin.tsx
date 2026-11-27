@@ -87,10 +87,20 @@ function AdminLayout() {
 						<nav className="hidden lg:flex items-center gap-5 text-xs uppercase tracking-widest text-muted-foreground font-sans">
 							<Link
 								to="/admin"
-								className="text-foreground font-medium flex items-center gap-1.5"
+								activeOptions={{ exact: true }}
+								activeProps={{ className: "text-foreground font-medium" }}
+								className="hover:text-foreground transition-colors flex items-center gap-1.5"
 							>
 								<BarChart3 className="h-3.5 w-3.5" />
 								Dashboard
+							</Link>
+							<Link
+								to="/admin/products"
+								activeProps={{ className: "text-foreground font-medium" }}
+								className="hover:text-foreground transition-colors flex items-center gap-1.5"
+							>
+								<Box className="h-3.5 w-3.5" />
+								Catalog
 							</Link>
 							<Link
 								to="/"
@@ -136,10 +146,14 @@ function AdminLayout() {
 			{/* Sub-header navigation bar for operational modules */}
 			<div className="border-b border-border bg-muted/20">
 				<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-6 overflow-x-auto text-xs tracking-wider uppercase text-muted-foreground font-sans">
-					<span className="flex items-center gap-1.5 text-foreground font-medium">
+					<Link
+						to="/admin/products"
+						activeProps={{ className: "text-foreground font-medium" }}
+						className="flex items-center gap-1.5 hover:text-foreground transition-colors whitespace-nowrap"
+					>
 						<Box className="h-3.5 w-3.5 text-primary" />
-						Catalog & Atelier
-					</span>
+						Catalog &amp; Atelier
+					</Link>
 					<span className="flex items-center gap-1.5">
 						<Package className="h-3.5 w-3.5" />
 						Orders & Logistics

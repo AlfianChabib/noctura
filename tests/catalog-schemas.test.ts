@@ -10,19 +10,27 @@ import type {
 	sizeGuides,
 	stockMovements,
 } from "@/db/schema/catalog";
+import {
+	toAdminCatalogFilter,
+	validateAdminProductsSearch,
+} from "@/lib/params/admin-products";
 import { zodValidator } from "@/server/middleware/validate";
 import {
+	adminCatalogFilterSchema,
+	adminProductStatusUpdateSchema,
 	catalogFilterSchema,
 	categoryInputSchema,
 	categoryUpdateSchema,
 	collectionInputSchema,
 	type ProductInput,
 	type ProductVariantInput,
+	productAdminUpdateSchema,
 	productInputSchema,
 	productUpdateSchema,
 	productVariantSchema,
 	type SizeGuideInput,
 	sizeGuideInputSchema,
+	skuAvailabilityQuerySchema,
 } from "@/shared/schemas/catalog";
 import {
 	inventoryFilterSchema,
@@ -545,4 +553,99 @@ test("zodValidator integrates seamlessly with catalog & inventory schemas in Hon
 		}),
 	});
 	assert.equal(adjRes.status, 200);
+});
+
+test("admin catalog schemas validate filters, status updates, SKU checks, and variant IDs", () => {
+	const defaultFilter = adminCatalogFilterSchema.parse({});
+	assert.equal(defaultFilter.sort, "updated_desc");
+	assert.equal(defaultFilter.page, 1);
+	assert.equal(defaultFilter.limit, 20);
+
+	const filtered = adminCatalogFilterSchema.parse({
+		search: "blazer",
+		status: "draft",
+		sort: "stock_asc",
+		page: "3",
+		limit: "50",
+	});
+	assert.equal(filtered.status, "draft");
+	assert.equal(filtered.sort, "stock_asc");
+	assert.equal(filtered.page, 3);
+	assert.equal(filtered.limit, 50);
+
+	const emptyStatus = adminCatalogFilterSchema.parse({ status: "" });
+	assert.equal(emptyStatus.status, undefined);
+
+	assert.equal(
+		adminProductStatusUpdateSchema.safeParse({ status: "archived" }).success,
+		true,
+	);
+	assert.equal(
+		skuAvailabilityQuerySchema.safeParse({
+			sku: "NOC-01-M",
+			excludeProductId: VALID_CATEGORY_ID,
+		}).success,
+		true,
+	);
+
+	const validUpdate = productAdminUpdateSchema.safeParse({
+		...makeValidProduct(),
+		variants: [
+			{
+				...makeValidProduct().variants[0],
+				id: VALID_VARIANT_ID,
+			},
+		],
+	});
+	assert.equal(validUpdate.success, true);
+});
+
+test("nuqs admin-products params schema parses, omits defaults, and normalizes filters", async () => {
+	const emptyResult = await validateAdminProductsSearch["~standard"].validate(
+		{},
+	);
+	assert.equal("value" in emptyResult, true);
+	if ("value" in emptyResult) {
+		assert.deepEqual(emptyResult.value, {});
+		assert.deepEqual(toAdminCatalogFilter(emptyResult.value), {
+			search: undefined,
+			category: undefined,
+			status: undefined,
+			sort: "updated_desc",
+			page: 1,
+			limit: 20,
+		});
+	}
+
+	const populatedResult = await validateAdminProductsSearch[
+		"~standard"
+	].validate({
+		search: " blazer ",
+		category: "outerwear",
+		status: "draft",
+		sort: "price_asc",
+		page: "2",
+		limit: "50",
+	});
+	assert.equal("value" in populatedResult, true);
+	if ("value" in populatedResult) {
+		assert.deepEqual(toAdminCatalogFilter(populatedResult.value), {
+			search: "blazer",
+			category: "outerwear",
+			status: "draft",
+			sort: "price_asc",
+			page: 2,
+			limit: 50,
+		});
+	}
+
+	// Out-of-bounds page & limit clamp cleanly
+	assert.deepEqual(toAdminCatalogFilter({ page: -3, limit: 500 }), {
+		search: undefined,
+		category: undefined,
+		status: undefined,
+		sort: "updated_desc",
+		page: 1,
+		limit: 100,
+	});
 });

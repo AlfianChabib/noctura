@@ -15,11 +15,14 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TestRouteImport } from './routes/test'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
-import { Route as AdminAdminRouteImport } from './routes/_admin/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AdminAdminProductsIndexRouteImport } from './routes/_admin/admin/products/index'
+import { Route as AdminAdminProductsNewRouteImport } from './routes/_admin/admin/products/new'
+import { Route as AdminAdminProductsIdEditRouteImport } from './routes/_admin/admin/products/$id/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -49,11 +52,6 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
   path: '/unauthorized',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminAdminRoute = AdminAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -69,33 +67,60 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAdminProductsIndexRoute = AdminAdminProductsIndexRouteImport.update({
+  id: '/admin/products/',
+  path: '/admin/products/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminProductsNewRoute = AdminAdminProductsNewRouteImport.update({
+  id: '/admin/products/new',
+  path: '/admin/products/new',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminProductsIdEditRoute =
+  AdminAdminProductsIdEditRouteImport.update({
+    id: '/admin/products/$id/edit',
+    path: '/admin/products/$id/edit',
+    getParentRoute: () => AdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/test': typeof TestRoute
   '/unauthorized': typeof UnauthorizedRoute
-  '/admin': typeof AdminAdminRoute
   '/account': typeof AuthenticatedAccountRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/login': typeof AuthLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/': typeof AdminAdminIndexRoute
+  '/admin/products/new': typeof AdminAdminProductsNewRoute
+  '/admin/products/': typeof AdminAdminProductsIndexRoute
+  '/admin/products/$id/edit': typeof AdminAdminProductsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/test': typeof TestRoute
   '/unauthorized': typeof UnauthorizedRoute
-  '/admin': typeof AdminAdminRoute
   '/account': typeof AuthenticatedAccountRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/login': typeof AuthLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin': typeof AdminAdminIndexRoute
+  '/admin/products/new': typeof AdminAdminProductsNewRoute
+  '/admin/products': typeof AdminAdminProductsIndexRoute
+  '/admin/products/$id/edit': typeof AdminAdminProductsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,11 +130,14 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/test': typeof TestRoute
   '/unauthorized': typeof UnauthorizedRoute
-  '/_admin/admin': typeof AdminAdminRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/login': typeof AuthLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_admin/admin/products/new': typeof AdminAdminProductsNewRoute
+  '/_admin/admin/products/': typeof AdminAdminProductsIndexRoute
+  '/_admin/admin/products/$id/edit': typeof AdminAdminProductsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,22 +146,28 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/test'
     | '/unauthorized'
-    | '/admin'
     | '/account'
     | '/api/$'
     | '/auth/login'
     | '/api/auth/$'
+    | '/admin/'
+    | '/admin/products/new'
+    | '/admin/products/'
+    | '/admin/products/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/sitemap.xml'
     | '/test'
     | '/unauthorized'
-    | '/admin'
     | '/account'
     | '/api/$'
     | '/auth/login'
     | '/api/auth/$'
+    | '/admin'
+    | '/admin/products/new'
+    | '/admin/products'
+    | '/admin/products/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -142,11 +176,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/test'
     | '/unauthorized'
-    | '/_admin/admin'
     | '/_authenticated/account'
     | '/api/$'
     | '/auth/login'
     | '/api/auth/$'
+    | '/_admin/admin/'
+    | '/_admin/admin/products/new'
+    | '/_admin/admin/products/'
+    | '/_admin/admin/products/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -205,13 +242,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnauthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_admin/admin': {
-      id: '/_admin/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminAdminRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/_authenticated/account': {
       id: '/_authenticated/account'
       path: '/account'
@@ -233,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin/admin/': {
+      id: '/_admin/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -240,15 +277,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin/admin/products/': {
+      id: '/_admin/admin/products/'
+      path: '/admin/products'
+      fullPath: '/admin/products/'
+      preLoaderRoute: typeof AdminAdminProductsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/products/new': {
+      id: '/_admin/admin/products/new'
+      path: '/admin/products/new'
+      fullPath: '/admin/products/new'
+      preLoaderRoute: typeof AdminAdminProductsNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/products/$id/edit': {
+      id: '/_admin/admin/products/$id/edit'
+      path: '/admin/products/$id/edit'
+      fullPath: '/admin/products/$id/edit'
+      preLoaderRoute: typeof AdminAdminProductsIdEditRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
-  AdminAdminRoute: typeof AdminAdminRoute
+  AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+  AdminAdminProductsNewRoute: typeof AdminAdminProductsNewRoute
+  AdminAdminProductsIndexRoute: typeof AdminAdminProductsIndexRoute
+  AdminAdminProductsIdEditRoute: typeof AdminAdminProductsIdEditRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminAdminRoute: AdminAdminRoute,
+  AdminAdminIndexRoute: AdminAdminIndexRoute,
+  AdminAdminProductsNewRoute: AdminAdminProductsNewRoute,
+  AdminAdminProductsIndexRoute: AdminAdminProductsIndexRoute,
+  AdminAdminProductsIdEditRoute: AdminAdminProductsIdEditRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

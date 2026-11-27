@@ -590,13 +590,172 @@ test("TASK-203: End-to-end PostgreSQL integration for catalog filtering, PDP det
 		assert.equal(movementsJson.items[0].quantityDelta, -3);
 		assert.equal(movementsJson.items[0].actorName, "Test Warehouse Staff");
 
-		// Verify GET /api/categories & /api/collections
-		const [catsRes, collsRes] = await Promise.all([
+		// Verify GET /api/categories, /api/collections & /api/size-guides
+		const [catsRes, collsRes, guidesRes] = await Promise.all([
 			testApp.request("/api/categories"),
 			testApp.request("/api/collections"),
+			testApp.request("/api/size-guides"),
 		]);
 		assert.equal(catsRes.status, 200);
 		assert.equal(collsRes.status, 200);
+		assert.equal(guidesRes.status, 200);
+
+		// Verify TASK-204 Admin Catalog CRUD, search, sorting, status toggle, and SKU uniqueness check
+		currentActor = { id: merchUser.id, role: "merchandiser" };
+		const trenchProduct = createdBody.product;
+
+		const adminListRes = await testApp.request(
+			`/api/admin/products?search=${encodeURIComponent(`NOC-TRENCH-${suffix}`)}&status=published&sort=stock_desc`,
+		);
+		assert.equal(adminListRes.status, 200);
+		const adminListJson = (await adminListRes.json()) as {
+			items: Array<{
+				id: string;
+				status: string;
+				variantCount: number;
+				totalAvailableStock: number;
+			}>;
+			pagination: { total: number };
+		};
+		assert.equal(adminListJson.items.length, 1);
+		assert.equal(adminListJson.items[0].id, trenchProduct.id);
+		assert.equal(adminListJson.items[0].status, "published");
+		assert.equal(adminListJson.items[0].variantCount, 2);
+
+		// Check SKU availability (taken by another product vs excluded when editing self)
+		const takenSkuRes = await testApp.request(
+			`/api/admin/products/check-sku?sku=${encodeURIComponent(`NOC-TRENCH-BLK-M-${suffix}`)}`,
+		);
+		assert.equal(takenSkuRes.status, 200);
+		const takenSkuJson = (await takenSkuRes.json()) as { available: boolean };
+		assert.equal(takenSkuJson.available, false);
+
+		const selfSkuRes = await testApp.request(
+			`/api/admin/products/check-sku?sku=${encodeURIComponent(`NOC-TRENCH-BLK-M-${suffix}`)}&excludeProductId=${trenchProduct.id}`,
+		);
+		assert.equal(selfSkuRes.status, 200);
+		const selfSkuJson = (await selfSkuRes.json()) as { available: boolean };
+		assert.equal(selfSkuJson.available, true);
+
+		// Fetch admin detail by ID
+		const detailByIdRes = await testApp.request(
+			`/api/admin/products/${trenchProduct.id}`,
+		);
+		assert.equal(detailByIdRes.status, 200);
+		const detailByIdJson = (await detailByIdRes.json()) as {
+			id: string;
+			variants: Array<{ id: string; sku: string; stockQuantity: number }>;
+		};
+		assert.equal(detailByIdJson.id, trenchProduct.id);
+		assert.equal(detailByIdJson.variants.length, 2);
+
+		// Reset simulated reservation before testing variant soft-deactivation + stock edit
+		await db
+			.update(productVariants)
+			.set({ reservedQuantity: 0 })
+			.where(eq(productVariants.id, sageVariant.id));
+
+		// Update product + adjust Obsidian Black stock (0 -> 17) + add Ivory S + soft-deactivate Sage L
+		const blkDetail = detailByIdJson.variants.find((v) =>
+			v.sku.includes("BLK-M"),
+		);
+		assert.ok(blkDetail);
+		const updateRes = await testApp.request(
+			`/api/admin/products/${trenchProduct.id}`,
+			{
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					categoryId: childCat.id,
+					sizeGuideId: sizeGuide.id,
+					parentSku: `NOC-TRENCH-${suffix}`,
+					name: "Architectural Gabardine Trench Coat (Updated)",
+					slug: `architectural-gabardine-trench-${suffix}`,
+					brand: "Noctura",
+					description: "Updated trench coat editorial description.",
+					genderAudience: "women",
+					materialComposition: "100% Cotton Gabardine",
+					careInstructions: "Dry clean only",
+					fitType: "Relaxed",
+					basePriceIdr: 2_600_000,
+					status: "published",
+					collectionIds: [collection.id],
+					media: [
+						{
+							url: `https://ik.imagekit.io/noctura/products/outerwear/trench-black-1-${suffix}.webp`,
+							altText: "Trench Obsidian Front",
+							colorName: "Obsidian Black",
+							mediaType: "image",
+							isPrimary: true,
+							sortOrder: 0,
+						},
+					],
+					variants: [
+						{
+							id: blkDetail.id,
+							sku: blkDetail.sku,
+							colorName: "Obsidian Black",
+							colorHex: "#1A1A1A",
+							sizeLabel: "M",
+							sizeSortOrder: 1,
+							priceIdr: 2_600_000,
+							compareAtPriceIdr: 2_900_000,
+							stockQuantity: 17,
+							weightGrams: 850,
+							lengthCm: 40,
+							widthCm: 30,
+							heightCm: 8,
+							isActive: true,
+						},
+						{
+							sku: `NOC-TRENCH-IVR-S-${suffix}`,
+							colorName: "Ivory",
+							colorHex: "#F4F1EA",
+							sizeLabel: "S",
+							sizeSortOrder: 0,
+							priceIdr: 2_600_000,
+							compareAtPriceIdr: null,
+							stockQuantity: 6,
+							weightGrams: 850,
+							lengthCm: 40,
+							widthCm: 30,
+							heightCm: 8,
+							isActive: true,
+						},
+					],
+				}),
+			},
+		);
+		assert.equal(updateRes.status, 200);
+		const updateJson = (await updateRes.json()) as {
+			product: {
+				name: string;
+				variants: Array<{ id: string; sku: string; stockQuantity: number }>;
+			};
+		};
+		assert.equal(
+			updateJson.product.name,
+			"Architectural Gabardine Trench Coat (Updated)",
+		);
+		assert.equal(updateJson.product.variants.length, 2);
+		for (const v of updateJson.product.variants) {
+			if (!createdVariantIds.includes(v.id)) {
+				createdVariantIds.push(v.id);
+			}
+		}
+
+		// Archive product via PATCH /api/admin/products/:id/status
+		const archiveRes = await testApp.request(
+			`/api/admin/products/${trenchProduct.id}/status`,
+			{
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ status: "archived" }),
+			},
+		);
+		assert.equal(archiveRes.status, 200);
+		const archiveJson = (await archiveRes.json()) as { status: string };
+		assert.equal(archiveJson.status, "archived");
 	} finally {
 		if (createdVariantIds.length > 0) {
 			await db

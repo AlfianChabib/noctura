@@ -9,6 +9,7 @@ import {
 	ilike,
 	inArray,
 	lte,
+	ne,
 	or,
 	type SQL,
 	sql,
@@ -28,9 +29,13 @@ import {
 import { orderItems, orders } from "@/db/schema/orders";
 import type { Role } from "@/lib/auth-access";
 import type {
+	AdminCatalogFilter,
+	AdminProductSortOption,
 	CatalogFilter,
 	CatalogSortOption,
+	ProductAdminUpdateInput,
 	ProductInput,
+	ProductStatus,
 } from "@/shared/schemas/catalog";
 import {
 	buildPaginationMeta,
@@ -97,6 +102,36 @@ export interface ProductListItem {
 
 export interface ProductListResponse {
 	items: ProductListItem[];
+	pagination: PaginationMeta;
+}
+
+export interface AdminProductListItem {
+	id: string;
+	slug: string;
+	parentSku: string;
+	name: string;
+	brand: string;
+	genderAudience: "men" | "women" | "unisex" | "kids";
+	fitType: string | null;
+	basePriceIdr: number;
+	status: ProductStatus;
+	publishedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+	category: {
+		id: string;
+		name: string;
+		slug: string;
+	};
+	priceRange: ProductPriceRange;
+	variantCount: number;
+	totalAvailableStock: number;
+	inStock: boolean;
+	primaryImage: ProductImageSummary | null;
+}
+
+export interface AdminProductListResponse {
+	items: AdminProductListItem[];
 	pagination: PaginationMeta;
 }
 
@@ -282,15 +317,25 @@ function aggregateVariantsAndMedia(
 	};
 }
 
+const UUID_REGEX =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function resolveCategoryIds(
 	database: Database,
-	categorySlug: string,
+	categorySlugOrId: string,
+	activeOnly = true,
 ): Promise<string[] | null> {
+	const matchFilter = UUID_REGEX.test(categorySlugOrId)
+		? eq(categories.id, categorySlugOrId)
+		: eq(categories.slug, categorySlugOrId);
+
 	const [matched] = await database
 		.select({ id: categories.id })
 		.from(categories)
 		.where(
-			and(eq(categories.slug, categorySlug), eq(categories.isActive, true)),
+			activeOnly
+				? and(matchFilter, eq(categories.isActive, true))
+				: matchFilter,
 		)
 		.limit(1);
 
@@ -302,10 +347,43 @@ async function resolveCategoryIds(
 		.select({ id: categories.id })
 		.from(categories)
 		.where(
-			and(eq(categories.parentId, matched.id), eq(categories.isActive, true)),
+			activeOnly
+				? and(
+						eq(categories.parentId, matched.id),
+						eq(categories.isActive, true),
+					)
+				: eq(categories.parentId, matched.id),
 		);
 
 	return [matched.id, ...childRows.map((c) => c.id)];
+}
+
+function buildProductSearchPredicate(
+	database: Database,
+	search: string,
+	activeVariantsOnly = true,
+): SQL | undefined {
+	const pattern = `%${escapeLikePattern(search)}%`;
+	const variantConditions: SQL[] = [
+		eq(productVariants.productId, products.id),
+		ilike(productVariants.sku, pattern),
+	];
+	if (activeVariantsOnly) {
+		variantConditions.push(eq(productVariants.isActive, true));
+	}
+
+	return or(
+		ilike(products.name, pattern),
+		ilike(products.brand, pattern),
+		ilike(products.parentSku, pattern),
+		ilike(products.description, pattern),
+		exists(
+			database
+				.select({ one: sql`1` })
+				.from(productVariants)
+				.where(and(...variantConditions)),
+		),
+	);
 }
 
 function buildProductWhereClause(
@@ -345,24 +423,10 @@ function buildProductWhereClause(
 	}
 
 	if (filter.search) {
-		const pattern = `%${escapeLikePattern(filter.search)}%`;
-		const searchPredicate = or(
-			ilike(products.name, pattern),
-			ilike(products.brand, pattern),
-			ilike(products.parentSku, pattern),
-			ilike(products.description, pattern),
-			exists(
-				database
-					.select({ one: sql`1` })
-					.from(productVariants)
-					.where(
-						and(
-							eq(productVariants.productId, products.id),
-							eq(productVariants.isActive, true),
-							ilike(productVariants.sku, pattern),
-						),
-					),
-			),
+		const searchPredicate = buildProductSearchPredicate(
+			database,
+			filter.search,
+			true,
 		);
 		if (searchPredicate) {
 			conditions.push(searchPredicate);
@@ -421,17 +485,17 @@ function buildProductWhereClause(
 	return and(...conditions);
 }
 
-function resolveProductOrderBy(sort: CatalogSortOption): SQL[] {
-	const minVariantPriceSql = sql<number>`COALESCE(
-		(
-			SELECT MIN(${productVariants.priceIdr})
-			FROM ${productVariants}
-			WHERE ${productVariants.productId} = ${products.id}
-			AND ${productVariants.isActive} = true
-		),
-		${products.basePriceIdr}
-	)`;
+const minVariantPriceSql = sql<number>`COALESCE(
+	(
+		SELECT MIN(${productVariants.priceIdr})
+		FROM ${productVariants}
+		WHERE ${productVariants.productId} = ${products.id}
+		AND ${productVariants.isActive} = true
+	),
+	${products.basePriceIdr}
+)`;
 
+function resolveProductOrderBy(sort: CatalogSortOption): SQL[] {
 	const popularityScoreSql = sql<number>`COALESCE(
 		(
 			SELECT SUM(${orderItems.quantity})
@@ -455,6 +519,29 @@ function resolveProductOrderBy(sort: CatalogSortOption): SQL[] {
 			desc(publishedRecencySql),
 			desc(products.id),
 		],
+	};
+
+	return sortMap[sort];
+}
+
+function resolveAdminProductOrderBy(sort: AdminProductSortOption): SQL[] {
+	const totalStockSql = sql<number>`COALESCE(
+		(
+			SELECT SUM(GREATEST(0, ${productVariants.stockQuantity} - ${productVariants.reservedQuantity}))
+			FROM ${productVariants}
+			WHERE ${productVariants.productId} = ${products.id}
+			AND ${productVariants.isActive} = true
+		),
+		0
+	)`;
+
+	const sortMap: Record<AdminProductSortOption, SQL[]> = {
+		updated_desc: [desc(products.updatedAt), desc(products.id)],
+		newest: [desc(products.createdAt), desc(products.id)],
+		price_asc: [asc(minVariantPriceSql), asc(products.id)],
+		price_desc: [desc(minVariantPriceSql), desc(products.id)],
+		stock_asc: [asc(totalStockSql), asc(products.id)],
+		stock_desc: [desc(totalStockSql), desc(products.id)],
 	};
 
 	return sortMap[sort];
@@ -525,6 +612,54 @@ async function fetchProductEnrichment(
 	}
 
 	return { variantsByProduct, mediaByProduct };
+}
+
+type DbTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+async function validateProductRelations(
+	tx: DbTransaction,
+	categoryId: string,
+	sizeGuideId: string | null | undefined,
+	collectionIds: readonly string[],
+) {
+	const [category] = await tx
+		.select({ id: categories.id })
+		.from(categories)
+		.where(eq(categories.id, categoryId))
+		.limit(1);
+
+	if (!category) {
+		throw new HTTPException(400, {
+			message: "Kategori produk tidak ditemukan.",
+		});
+	}
+
+	if (sizeGuideId) {
+		const [sizeGuide] = await tx
+			.select({ id: sizeGuides.id })
+			.from(sizeGuides)
+			.where(eq(sizeGuides.id, sizeGuideId))
+			.limit(1);
+
+		if (!sizeGuide) {
+			throw new HTTPException(400, {
+				message: "Panduan ukuran tidak ditemukan.",
+			});
+		}
+	}
+
+	if (collectionIds.length > 0) {
+		const foundCollections = await tx
+			.select({ id: collections.id })
+			.from(collections)
+			.where(inArray(collections.id, [...collectionIds]));
+
+		if (foundCollections.length !== collectionIds.length) {
+			throw new HTTPException(400, {
+				message: "Satu atau lebih koleksi tidak ditemukan.",
+			});
+		}
+	}
 }
 
 export function createCatalogService(deps: CatalogServiceDeps = {}) {
@@ -707,44 +842,12 @@ export function createCatalogService(deps: CatalogServiceDeps = {}) {
 
 			try {
 				return await database.transaction(async (tx) => {
-					const [category] = await tx
-						.select({ id: categories.id })
-						.from(categories)
-						.where(eq(categories.id, input.categoryId))
-						.limit(1);
-
-					if (!category) {
-						throw new HTTPException(400, {
-							message: "Kategori produk tidak ditemukan.",
-						});
-					}
-
-					if (input.sizeGuideId) {
-						const [sizeGuide] = await tx
-							.select({ id: sizeGuides.id })
-							.from(sizeGuides)
-							.where(eq(sizeGuides.id, input.sizeGuideId))
-							.limit(1);
-
-						if (!sizeGuide) {
-							throw new HTTPException(400, {
-								message: "Panduan ukuran tidak ditemukan.",
-							});
-						}
-					}
-
-					if (uniqueCollectionIds.length > 0) {
-						const foundCollections = await tx
-							.select({ id: collections.id })
-							.from(collections)
-							.where(inArray(collections.id, uniqueCollectionIds));
-
-						if (foundCollections.length !== uniqueCollectionIds.length) {
-							throw new HTTPException(400, {
-								message: "Satu atau lebih koleksi tidak ditemukan.",
-							});
-						}
-					}
+					await validateProductRelations(
+						tx,
+						input.categoryId,
+						input.sizeGuideId,
+						uniqueCollectionIds,
+					);
 
 					const now = new Date();
 					const [createdProduct] = await tx
@@ -859,6 +962,519 @@ export function createCatalogService(deps: CatalogServiceDeps = {}) {
 			} catch (err) {
 				mapProductWriteError(err);
 			}
+		},
+
+		async listAdminProducts(
+			filter: AdminCatalogFilter,
+		): Promise<AdminProductListResponse> {
+			let categoryIds: string[] | undefined;
+			if (filter.category) {
+				const resolved = await resolveCategoryIds(
+					database,
+					filter.category,
+					false,
+				);
+				if (!resolved) {
+					return {
+						items: [],
+						pagination: buildPaginationMeta(filter.page, filter.limit, 0),
+					};
+				}
+				categoryIds = resolved;
+			}
+
+			const conditions: SQL[] = [];
+			if (categoryIds) {
+				conditions.push(inArray(products.categoryId, categoryIds));
+			}
+			if (filter.status) {
+				conditions.push(eq(products.status, filter.status));
+			}
+			if (filter.search) {
+				const searchPredicate = buildProductSearchPredicate(
+					database,
+					filter.search,
+					false,
+				);
+				if (searchPredicate) {
+					conditions.push(searchPredicate);
+				}
+			}
+
+			const whereClause =
+				conditions.length > 0 ? and(...conditions) : undefined;
+			const orderByColumns = resolveAdminProductOrderBy(filter.sort);
+			const offset = (filter.page - 1) * filter.limit;
+
+			const [countRows, productRows] = await Promise.all([
+				database.select({ total: count() }).from(products).where(whereClause),
+				database
+					.select({
+						id: products.id,
+						slug: products.slug,
+						parentSku: products.parentSku,
+						name: products.name,
+						brand: products.brand,
+						genderAudience: products.genderAudience,
+						fitType: products.fitType,
+						basePriceIdr: products.basePriceIdr,
+						status: products.status,
+						publishedAt: products.publishedAt,
+						createdAt: products.createdAt,
+						updatedAt: products.updatedAt,
+						categoryId: categories.id,
+						categoryName: categories.name,
+						categorySlug: categories.slug,
+					})
+					.from(products)
+					.innerJoin(categories, eq(categories.id, products.categoryId))
+					.where(whereClause)
+					.orderBy(...orderByColumns)
+					.limit(filter.limit)
+					.offset(offset),
+			]);
+
+			const total = Number(countRows[0]?.total ?? 0);
+			const pagination = buildPaginationMeta(filter.page, filter.limit, total);
+
+			if (productRows.length === 0) {
+				return { items: [], pagination };
+			}
+
+			const { variantsByProduct, mediaByProduct } =
+				await fetchProductEnrichment(
+					database,
+					productRows.map((row) => row.id),
+				);
+
+			const items: AdminProductListItem[] = productRows.map((row) => {
+				const activeVariants = variantsByProduct.get(row.id) ?? [];
+				const summary = aggregateVariantsAndMedia(
+					row.basePriceIdr,
+					activeVariants,
+					mediaByProduct.get(row.id) ?? [],
+				);
+
+				return {
+					id: row.id,
+					slug: row.slug,
+					parentSku: row.parentSku,
+					name: row.name,
+					brand: row.brand,
+					genderAudience: row.genderAudience,
+					fitType: row.fitType,
+					basePriceIdr: row.basePriceIdr,
+					status: row.status,
+					publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
+					createdAt: row.createdAt.toISOString(),
+					updatedAt: row.updatedAt.toISOString(),
+					category: {
+						id: row.categoryId,
+						name: row.categoryName,
+						slug: row.categorySlug,
+					},
+					priceRange: summary.priceRange,
+					variantCount: activeVariants.length,
+					totalAvailableStock: summary.totalAvailableStock,
+					inStock: summary.inStock,
+					primaryImage: summary.primaryImage,
+				};
+			});
+
+			return { items, pagination };
+		},
+
+		async getAdminProductById(id: string) {
+			const product = await database.query.products.findFirst({
+				where: { id },
+				with: {
+					category: true,
+					sizeGuide: true,
+					variants: {
+						where: { isActive: true },
+						orderBy: { sizeSortOrder: "asc", colorName: "asc" },
+					},
+					media: {
+						orderBy: { isPrimary: "desc", sortOrder: "asc" },
+					},
+					productCollections: {
+						orderBy: { sortOrder: "asc" },
+						with: {
+							collection: true,
+						},
+					},
+				},
+			});
+
+			if (!product) {
+				throw new HTTPException(404, {
+					message: "Produk tidak ditemukan.",
+				});
+			}
+
+			return {
+				id: product.id,
+				categoryId: product.categoryId,
+				sizeGuideId: product.sizeGuideId,
+				parentSku: product.parentSku,
+				name: product.name,
+				slug: product.slug,
+				brand: product.brand,
+				description: product.description,
+				genderAudience: product.genderAudience,
+				materialComposition: product.materialComposition,
+				careInstructions: product.careInstructions,
+				fitType: product.fitType,
+				basePriceIdr: product.basePriceIdr,
+				status: product.status,
+				publishedAt: product.publishedAt
+					? product.publishedAt.toISOString()
+					: null,
+				createdAt: product.createdAt.toISOString(),
+				updatedAt: product.updatedAt.toISOString(),
+				category: product.category,
+				sizeGuide: product.sizeGuide,
+				collectionIds: product.productCollections.map((pc) => pc.collectionId),
+				variants: product.variants.map((variant) => ({
+					...variant,
+					availableQuantity: Math.max(
+						0,
+						variant.stockQuantity - variant.reservedQuantity,
+					),
+					createdAt: variant.createdAt.toISOString(),
+					updatedAt: variant.updatedAt.toISOString(),
+				})),
+				media: product.media.map((item) => ({
+					...item,
+					createdAt: item.createdAt.toISOString(),
+				})),
+			};
+		},
+
+		async updateAdminProduct(
+			id: string,
+			input: ProductAdminUpdateInput,
+			actor: CatalogActor,
+		) {
+			const uniqueCollectionIds = Array.from(new Set(input.collectionIds));
+
+			try {
+				return await database.transaction(async (tx) => {
+					const [existingProduct] = await tx
+						.select()
+						.from(products)
+						.where(eq(products.id, id))
+						.limit(1);
+
+					if (!existingProduct) {
+						throw new HTTPException(404, {
+							message: "Produk tidak ditemukan.",
+						});
+					}
+
+					await validateProductRelations(
+						tx,
+						input.categoryId,
+						input.sizeGuideId,
+						uniqueCollectionIds,
+					);
+
+					const now = new Date();
+					const publishedAt =
+						input.status === "published"
+							? (existingProduct.publishedAt ?? now)
+							: existingProduct.publishedAt;
+
+					const [updatedProduct] = await tx
+						.update(products)
+						.set({
+							categoryId: input.categoryId,
+							sizeGuideId: input.sizeGuideId ?? null,
+							parentSku: input.parentSku,
+							name: input.name,
+							slug: input.slug,
+							brand: input.brand,
+							description: input.description,
+							genderAudience: input.genderAudience,
+							materialComposition: input.materialComposition ?? null,
+							careInstructions: input.careInstructions ?? null,
+							fitType: input.fitType ?? null,
+							basePriceIdr: input.basePriceIdr,
+							status: input.status,
+							publishedAt,
+							updatedAt: now,
+						})
+						.where(eq(products.id, id))
+						.returning();
+
+					const existingVariants = await tx
+						.select()
+						.from(productVariants)
+						.where(eq(productVariants.productId, id))
+						.orderBy(asc(productVariants.id))
+						.for("update");
+
+					const existingById = new Map(existingVariants.map((v) => [v.id, v]));
+					const existingByColorSize = new Map(
+						existingVariants.map((v) => [
+							`${v.colorName.toLowerCase()}::${v.sizeLabel.toUpperCase()}`,
+							v,
+						]),
+					);
+					const existingBySku = new Map(
+						existingVariants.map((v) => [v.sku.toUpperCase(), v]),
+					);
+
+					const matchedExistingIds = new Set<string>();
+					const persistedVariants: (typeof productVariants.$inferSelect)[] = [];
+
+					for (const variantInput of input.variants) {
+						const colorSizeKey = `${variantInput.colorName.toLowerCase()}::${variantInput.sizeLabel.toUpperCase()}`;
+						const candidate =
+							(variantInput.id
+								? existingById.get(variantInput.id)
+								: undefined) ??
+							existingByColorSize.get(colorSizeKey) ??
+							existingBySku.get(variantInput.sku.toUpperCase());
+
+						if (candidate && !matchedExistingIds.has(candidate.id)) {
+							matchedExistingIds.add(candidate.id);
+							if (variantInput.stockQuantity < candidate.reservedQuantity) {
+								throw new HTTPException(409, {
+									message: `Stok SKU '${variantInput.sku}' (${variantInput.stockQuantity}) lebih kecil dari stok tereservasi (${candidate.reservedQuantity}).`,
+								});
+							}
+
+							const [updatedVariant] = await tx
+								.update(productVariants)
+								.set({
+									sku: variantInput.sku,
+									colorName: variantInput.colorName,
+									colorHex: variantInput.colorHex,
+									sizeLabel: variantInput.sizeLabel,
+									sizeSortOrder: variantInput.sizeSortOrder,
+									priceIdr: variantInput.priceIdr,
+									compareAtPriceIdr: variantInput.compareAtPriceIdr ?? null,
+									stockQuantity: variantInput.stockQuantity,
+									weightGrams: variantInput.weightGrams,
+									lengthCm: variantInput.lengthCm,
+									widthCm: variantInput.widthCm,
+									heightCm: variantInput.heightCm,
+									isActive: variantInput.isActive,
+									updatedAt: now,
+								})
+								.where(eq(productVariants.id, candidate.id))
+								.returning();
+
+							persistedVariants.push(updatedVariant);
+
+							const delta =
+								variantInput.stockQuantity - candidate.stockQuantity;
+							if (delta !== 0) {
+								await tx.insert(stockMovements).values({
+									variantId: candidate.id,
+									movementType: "manual_adjust",
+									quantityDelta: delta,
+									referenceType: "admin_product_edit",
+									referenceId: id,
+									actorId: actor.id,
+									notes: `Stock updated via product edit (${variantInput.sku})`,
+								});
+							}
+						} else {
+							const [insertedVariant] = await tx
+								.insert(productVariants)
+								.values({
+									productId: id,
+									sku: variantInput.sku,
+									colorName: variantInput.colorName,
+									colorHex: variantInput.colorHex,
+									sizeLabel: variantInput.sizeLabel,
+									sizeSortOrder: variantInput.sizeSortOrder,
+									priceIdr: variantInput.priceIdr,
+									compareAtPriceIdr: variantInput.compareAtPriceIdr ?? null,
+									stockQuantity: variantInput.stockQuantity,
+									reservedQuantity: 0,
+									weightGrams: variantInput.weightGrams,
+									lengthCm: variantInput.lengthCm,
+									widthCm: variantInput.widthCm,
+									heightCm: variantInput.heightCm,
+									isActive: variantInput.isActive,
+								})
+								.returning();
+
+							persistedVariants.push(insertedVariant);
+
+							if (insertedVariant.stockQuantity > 0) {
+								await tx.insert(stockMovements).values({
+									variantId: insertedVariant.id,
+									movementType: "restock",
+									quantityDelta: insertedVariant.stockQuantity,
+									referenceType: "product_edit_add",
+									referenceId: id,
+									actorId: actor.id,
+									notes: `Initial stock on variant add (${insertedVariant.sku})`,
+								});
+							}
+						}
+					}
+
+					for (const existingVariant of existingVariants) {
+						if (!matchedExistingIds.has(existingVariant.id)) {
+							if (existingVariant.reservedQuantity > 0) {
+								throw new HTTPException(409, {
+									message: `Varian SKU '${existingVariant.sku}' memiliki stok tereservasi (${existingVariant.reservedQuantity}) dan tidak dapat dinonaktifkan.`,
+								});
+							}
+							if (existingVariant.isActive) {
+								await tx
+									.update(productVariants)
+									.set({ isActive: false, updatedAt: now })
+									.where(eq(productVariants.id, existingVariant.id));
+							}
+						}
+					}
+
+					await tx.delete(productMedia).where(eq(productMedia.productId, id));
+
+					const insertedMedia =
+						input.media.length > 0
+							? await tx
+									.insert(productMedia)
+									.values(
+										input.media.map((media, index) => ({
+											productId: id,
+											colorName: media.colorName ?? null,
+											url: media.url,
+											altText: media.altText,
+											mediaType: media.mediaType,
+											isPrimary: media.isPrimary,
+											sortOrder: media.sortOrder ?? index,
+										})),
+									)
+									.returning()
+							: [];
+
+					await tx
+						.delete(productCollections)
+						.where(eq(productCollections.productId, id));
+
+					if (uniqueCollectionIds.length > 0) {
+						await tx.insert(productCollections).values(
+							uniqueCollectionIds.map((collectionId, index) => ({
+								productId: id,
+								collectionId,
+								sortOrder: index,
+							})),
+						);
+					}
+
+					return {
+						product: {
+							...updatedProduct,
+							publishedAt: updatedProduct.publishedAt
+								? updatedProduct.publishedAt.toISOString()
+								: null,
+							createdAt: updatedProduct.createdAt.toISOString(),
+							updatedAt: updatedProduct.updatedAt.toISOString(),
+							variants: persistedVariants.map((v) => ({
+								...v,
+								availableQuantity: v.stockQuantity - v.reservedQuantity,
+								createdAt: v.createdAt.toISOString(),
+								updatedAt: v.updatedAt.toISOString(),
+							})),
+							media: insertedMedia.map((m) => ({
+								...m,
+								createdAt: m.createdAt.toISOString(),
+							})),
+							collectionIds: uniqueCollectionIds,
+						},
+					};
+				});
+			} catch (err) {
+				mapProductWriteError(err);
+			}
+		},
+
+		async updateAdminProductStatus(id: string, status: ProductStatus) {
+			const [existing] = await database
+				.select({
+					id: products.id,
+					publishedAt: products.publishedAt,
+				})
+				.from(products)
+				.where(eq(products.id, id))
+				.limit(1);
+
+			if (!existing) {
+				throw new HTTPException(404, {
+					message: "Produk tidak ditemukan.",
+				});
+			}
+
+			const now = new Date();
+			const [updated] = await database
+				.update(products)
+				.set({
+					status,
+					publishedAt:
+						status === "published"
+							? (existing.publishedAt ?? now)
+							: existing.publishedAt,
+					updatedAt: now,
+				})
+				.where(eq(products.id, id))
+				.returning({
+					id: products.id,
+					status: products.status,
+					publishedAt: products.publishedAt,
+					updatedAt: products.updatedAt,
+				});
+
+			return {
+				id: updated.id,
+				status: updated.status,
+				publishedAt: updated.publishedAt
+					? updated.publishedAt.toISOString()
+					: null,
+				updatedAt: updated.updatedAt.toISOString(),
+			};
+		},
+
+		async checkSkuAvailability(sku: string, excludeProductId?: string) {
+			const normalized = sku.trim().toLowerCase();
+			const conditions: SQL[] = [
+				sql`lower(${productVariants.sku}) = ${normalized}`,
+			];
+			if (excludeProductId) {
+				conditions.push(ne(productVariants.productId, excludeProductId));
+			}
+
+			const [existing] = await database
+				.select({ id: productVariants.id })
+				.from(productVariants)
+				.where(and(...conditions))
+				.limit(1);
+
+			return {
+				sku: sku.trim(),
+				available: !existing,
+			};
+		},
+
+		async listSizeGuides() {
+			const rows = await database
+				.select({
+					id: sizeGuides.id,
+					name: sizeGuides.name,
+					garmentType: sizeGuides.garmentType,
+					measurementsJson: sizeGuides.measurementsJson,
+					modelNote: sizeGuides.modelNote,
+				})
+				.from(sizeGuides)
+				.orderBy(asc(sizeGuides.name));
+
+			return { sizeGuides: rows };
 		},
 
 		async listCategories() {

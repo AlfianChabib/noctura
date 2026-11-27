@@ -21,6 +21,17 @@ export const CATALOG_SORT_OPTIONS = [
 ] as const;
 export type CatalogSortOption = (typeof CATALOG_SORT_OPTIONS)[number];
 
+export const ADMIN_PRODUCT_SORT_OPTIONS = [
+	"updated_desc",
+	"newest",
+	"price_asc",
+	"price_desc",
+	"stock_asc",
+	"stock_desc",
+] as const;
+export type AdminProductSortOption =
+	(typeof ADMIN_PRODUCT_SORT_OPTIONS)[number];
+
 export const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 
 export const genderAudienceSchema = z.enum(GENDER_AUDIENCES, {
@@ -41,6 +52,11 @@ export const sizeGuideUnitSchema = z.enum(SIZE_GUIDE_UNITS, {
 
 export const catalogSortSchema = z.enum(CATALOG_SORT_OPTIONS, {
 	error: "Sort option must be newest, price_asc, price_desc, or popularity.",
+});
+
+export const adminProductSortSchema = z.enum(ADMIN_PRODUCT_SORT_OPTIONS, {
+	error:
+		"Admin sort must be updated_desc, newest, price_asc, price_desc, stock_asc, or stock_desc.",
 });
 
 /**
@@ -514,3 +530,69 @@ export const catalogFilterSchema = z
 
 export type CatalogFilter = z.infer<typeof catalogFilterSchema>;
 export type CatalogFilterInput = z.input<typeof catalogFilterSchema>;
+
+// ---------------------------------------------------------------------------
+// Admin Catalog Management Schemas (TASK-204)
+// ---------------------------------------------------------------------------
+
+const optionalTrimmedStringQuery = (maxLength: number, label: string) =>
+	z
+		.string()
+		.trim()
+		.max(maxLength, `${label} must not exceed ${maxLength} characters.`)
+		.transform((val) => (val.length > 0 ? val : undefined))
+		.optional();
+
+export const productVariantAdminSchema = z
+	.object({
+		id: z.uuid({ error: "Invalid variant ID." }).optional(),
+		...productVariantBaseSchema.shape,
+	})
+	.superRefine(validateCompareAtPrice);
+export type ProductVariantAdminInput = z.infer<
+	typeof productVariantAdminSchema
+>;
+
+export const productAdminUpdateSchema = z
+	.object({
+		...productBaseSchema.shape,
+		variants: z
+			.array(productVariantAdminSchema)
+			.min(1, "Product must have at least one SKU variant."),
+	})
+	.superRefine(validateUniqueProductVariants);
+export type ProductAdminUpdateInput = z.infer<typeof productAdminUpdateSchema>;
+
+export const adminProductStatusUpdateSchema = z.object({
+	status: productStatusSchema,
+});
+export type AdminProductStatusUpdateInput = z.infer<
+	typeof adminProductStatusUpdateSchema
+>;
+
+export const skuAvailabilityQuerySchema = z.object({
+	sku: z
+		.string()
+		.trim()
+		.min(3, "SKU must be at least 3 characters.")
+		.max(64, "SKU must not exceed 64 characters."),
+	excludeProductId: z
+		.union([
+			z.literal("").transform(() => undefined),
+			z.uuid({ error: "Invalid product ID." }),
+		])
+		.optional(),
+});
+export type SkuAvailabilityQuery = z.infer<typeof skuAvailabilityQuerySchema>;
+
+export const adminCatalogFilterSchema = z.object({
+	search: optionalTrimmedStringQuery(120, "Search query"),
+	category: optionalTrimmedStringQuery(120, "Category filter"),
+	status: z
+		.union([z.literal("").transform(() => undefined), productStatusSchema])
+		.optional(),
+	sort: adminProductSortSchema.default("updated_desc"),
+	...createPaginationQueryShape(20, 100),
+});
+export type AdminCatalogFilter = z.infer<typeof adminCatalogFilterSchema>;
+export type AdminCatalogFilterInput = z.input<typeof adminCatalogFilterSchema>;
