@@ -382,6 +382,10 @@ test("catalogFilterSchema normalizes query strings, arrays, stringbools, default
 
 	// Native boolean & string array (from TanStack Router JSON search params)
 	const fromRouterSearch = catalogFilterSchema.safeParse({
+		search: "  ",
+		category: "",
+		collection: "",
+		genderAudience: "",
 		size: ["S", "M"],
 		inStock: false,
 		minPrice: "",
@@ -390,6 +394,10 @@ test("catalogFilterSchema normalizes query strings, arrays, stringbools, default
 	});
 	assert.equal(fromRouterSearch.success, true);
 	if (fromRouterSearch.success) {
+		assert.equal(fromRouterSearch.data.search, undefined);
+		assert.equal(fromRouterSearch.data.category, undefined);
+		assert.equal(fromRouterSearch.data.collection, undefined);
+		assert.equal(fromRouterSearch.data.genderAudience, undefined);
 		assert.deepEqual(fromRouterSearch.data.size, ["S", "M"]);
 		assert.equal(fromRouterSearch.data.inStock, false);
 		assert.equal(fromRouterSearch.data.minPrice, undefined);

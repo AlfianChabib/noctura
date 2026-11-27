@@ -1,52 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
-import { createIsomorphicFn } from "@tanstack/react-start";
-import { api, createApiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
+import {
+	getApiErrorMessage,
+	getIsomorphicApi,
+} from "@/lib/queries/isomorphic-api";
 import type { AdminCatalogFilter } from "@/shared/schemas/catalog";
 
-const getAdminApi = createIsomorphicFn()
-	.client(() => api)
-	.server(async () => {
-		const [{ getRequestHeaders }, { app }] = await Promise.all([
-			import("@tanstack/react-start/server"),
-			import("@/server/app"),
-		]);
-		const reqHeaders = getRequestHeaders();
-		return createApiClient("http://localhost", {
-			fetch: (input: RequestInfo | URL, init?: RequestInit) => {
-				const merged = new Headers(reqHeaders);
-				if (init?.headers) {
-					new Headers(init.headers).forEach((value, key) => {
-						merged.set(key, value);
-					});
-				}
-				return Promise.resolve(
-					app.request(input, {
-						...init,
-						headers: merged,
-					}),
-				);
-			},
-		}).api;
-	});
-
-export async function getApiErrorMessage(
-	res: { status: number; json(): Promise<unknown> },
-	fallback: string,
-): Promise<string> {
-	const body = (await res.json().catch(() => null)) as {
-		message?: string;
-		error?: string | { message?: string };
-	} | null;
-
-	const nested =
-		typeof body?.error === "object" && body.error !== null
-			? body.error.message
-			: typeof body?.error === "string"
-				? body.error
-				: undefined;
-
-	return body?.message || nested || `${fallback} (HTTP ${res.status}).`;
-}
+export { getApiErrorMessage };
 
 export const adminCatalogKeys = {
 	all: ["admin", "catalog"] as const,
@@ -75,7 +35,7 @@ export function adminProductsQueryOptions(filter: AdminCatalogFilter) {
 	return queryOptions({
 		queryKey: adminCatalogKeys.list(filter),
 		queryFn: async () => {
-			const client = await getAdminApi();
+			const client = await getIsomorphicApi();
 			const res = await client.admin.products.$get({
 				query: toAdminQueryParams(filter),
 			});
@@ -93,7 +53,7 @@ export function adminProductDetailQueryOptions(id: string) {
 	return queryOptions({
 		queryKey: adminCatalogKeys.detail(id),
 		queryFn: async () => {
-			const client = await getAdminApi();
+			const client = await getIsomorphicApi();
 			const res = await client.admin.products[":id"].$get({
 				param: { id },
 			});
@@ -115,7 +75,7 @@ export function categoriesQueryOptions() {
 		queryKey: adminCatalogKeys.categories(),
 		staleTime: 5 * 60_000,
 		queryFn: async () => {
-			const client = await getAdminApi();
+			const client = await getIsomorphicApi();
 			const res = await client.categories.$get();
 			if (!res.ok) {
 				throw new Error(
@@ -132,7 +92,7 @@ export function collectionsQueryOptions() {
 		queryKey: adminCatalogKeys.collections(),
 		staleTime: 5 * 60_000,
 		queryFn: async () => {
-			const client = await getAdminApi();
+			const client = await getIsomorphicApi();
 			const res = await client.collections.$get();
 			if (!res.ok) {
 				throw new Error(
@@ -149,7 +109,7 @@ export function sizeGuidesQueryOptions() {
 		queryKey: adminCatalogKeys.sizeGuides(),
 		staleTime: 5 * 60_000,
 		queryFn: async () => {
-			const client = await getAdminApi();
+			const client = await getIsomorphicApi();
 			const res = await client["size-guides"].$get();
 			if (!res.ok) {
 				throw new Error(

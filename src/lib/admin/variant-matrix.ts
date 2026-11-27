@@ -1,4 +1,7 @@
+import { formatIdr } from "@/lib/format";
 import type { ProductVariantAdminInput } from "@/shared/schemas/catalog";
+
+export { formatIdr };
 
 export interface MatrixColorChoice {
 	colorName: string;
@@ -44,16 +47,6 @@ export const PRESET_SIZES: readonly string[] = [
 const SIZE_ORDER_MAP = new Map<string, number>(
 	PRESET_SIZES.map((size, idx) => [size.toUpperCase(), idx]),
 );
-
-const idrFormatter = new Intl.NumberFormat("id-ID", {
-	style: "currency",
-	currency: "IDR",
-	maximumFractionDigits: 0,
-});
-
-export function formatIdr(amount: number): string {
-	return idrFormatter.format(amount);
-}
 
 export function slugifyText(input: string): string {
 	return input

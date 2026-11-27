@@ -43,6 +43,10 @@ export function createCatalogRoute({
 			const result = await service.listProducts(filter);
 			return c.json(result, 200);
 		})
+		.get("/products/facets", async (c) => {
+			const facets = await service.getCatalogFacets();
+			return c.json(facets, 200);
+		})
 		.get(
 			"/products/:slug",
 			zodValidator("param", productSlugParamSchema),

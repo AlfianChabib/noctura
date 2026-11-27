@@ -33,6 +33,7 @@ import type {
 	AdminProductSortOption,
 	CatalogFilter,
 	CatalogSortOption,
+	GenderAudience,
 	ProductAdminUpdateInput,
 	ProductInput,
 	ProductStatus,
@@ -103,6 +104,53 @@ export interface ProductListItem {
 export interface ProductListResponse {
 	items: ProductListItem[];
 	pagination: PaginationMeta;
+}
+
+export interface CatalogColorFacet {
+	colorName: string;
+	colorHex: string;
+	productCount: number;
+}
+
+export interface CatalogSizeFacet {
+	sizeLabel: string;
+	sizeSortOrder: number;
+	productCount: number;
+}
+
+export interface CatalogCategoryFacet {
+	id: string;
+	parentId: string | null;
+	name: string;
+	slug: string;
+	sortOrder: number;
+	productCount: number;
+}
+
+export interface CatalogCollectionFacet {
+	id: string;
+	name: string;
+	slug: string;
+	subtitle: string | null;
+	productCount: number;
+}
+
+export interface CatalogGenderFacet {
+	genderAudience: GenderAudience;
+	productCount: number;
+}
+
+export interface CatalogFacetsResponse {
+	sizes: CatalogSizeFacet[];
+	colors: CatalogColorFacet[];
+	priceRange: {
+		minPriceIdr: number;
+		maxPriceIdr: number;
+	};
+	categories: CatalogCategoryFacet[];
+	collections: CatalogCollectionFacet[];
+	genderAudiences: CatalogGenderFacet[];
+	totalPublishedProducts: number;
 }
 
 export interface AdminProductListItem {
@@ -1516,6 +1564,179 @@ export function createCatalogService(deps: CatalogServiceDeps = {}) {
 					startsAt: row.startsAt ? row.startsAt.toISOString() : null,
 					endsAt: row.endsAt ? row.endsAt.toISOString() : null,
 				})),
+			};
+		},
+
+		async getCatalogFacets(): Promise<CatalogFacetsResponse> {
+			const [
+				sizeRows,
+				colorRows,
+				priceBoundRows,
+				categoryRows,
+				categoryCountRows,
+				collectionRows,
+				genderRows,
+			] = await Promise.all([
+				database
+					.select({
+						sizeLabel: productVariants.sizeLabel,
+						sizeSortOrder: sql<number>`MIN(${productVariants.sizeSortOrder})`,
+						productCount: sql<number>`COUNT(DISTINCT ${products.id})`,
+					})
+					.from(productVariants)
+					.innerJoin(products, eq(products.id, productVariants.productId))
+					.where(
+						and(
+							eq(products.status, "published"),
+							eq(productVariants.isActive, true),
+						),
+					)
+					.groupBy(productVariants.sizeLabel)
+					.orderBy(
+						sql`MIN(${productVariants.sizeSortOrder}) ASC`,
+						asc(productVariants.sizeLabel),
+					),
+				database
+					.select({
+						colorName: productVariants.colorName,
+						colorHex: sql<string>`MIN(${productVariants.colorHex})`,
+						productCount: sql<number>`COUNT(DISTINCT ${products.id})`,
+					})
+					.from(productVariants)
+					.innerJoin(products, eq(products.id, productVariants.productId))
+					.where(
+						and(
+							eq(products.status, "published"),
+							eq(productVariants.isActive, true),
+						),
+					)
+					.groupBy(productVariants.colorName)
+					.orderBy(asc(productVariants.colorName)),
+				database
+					.select({
+						minPriceIdr: sql<number | null>`MIN(${productVariants.priceIdr})`,
+						maxPriceIdr: sql<number | null>`MAX(${productVariants.priceIdr})`,
+					})
+					.from(productVariants)
+					.innerJoin(products, eq(products.id, productVariants.productId))
+					.where(
+						and(
+							eq(products.status, "published"),
+							eq(productVariants.isActive, true),
+						),
+					),
+				database
+					.select({
+						id: categories.id,
+						parentId: categories.parentId,
+						name: categories.name,
+						slug: categories.slug,
+						sortOrder: categories.sortOrder,
+					})
+					.from(categories)
+					.where(eq(categories.isActive, true))
+					.orderBy(asc(categories.sortOrder), asc(categories.name)),
+				database
+					.select({
+						categoryId: products.categoryId,
+						productCount: count(),
+					})
+					.from(products)
+					.where(eq(products.status, "published"))
+					.groupBy(products.categoryId),
+				database
+					.select({
+						id: collections.id,
+						name: collections.name,
+						slug: collections.slug,
+						subtitle: collections.subtitle,
+						productCount: sql<number>`COUNT(DISTINCT ${products.id})`,
+					})
+					.from(collections)
+					.leftJoin(
+						productCollections,
+						eq(productCollections.collectionId, collections.id),
+					)
+					.leftJoin(
+						products,
+						and(
+							eq(products.id, productCollections.productId),
+							eq(products.status, "published"),
+						),
+					)
+					.where(eq(collections.isActive, true))
+					.groupBy(
+						collections.id,
+						collections.name,
+						collections.slug,
+						collections.subtitle,
+					)
+					.orderBy(desc(collections.startsAt), asc(collections.name)),
+				database
+					.select({
+						genderAudience: products.genderAudience,
+						productCount: count(),
+					})
+					.from(products)
+					.where(eq(products.status, "published"))
+					.groupBy(products.genderAudience),
+			]);
+
+			const directCategoryCounts = new Map<string, number>(
+				categoryCountRows.map((row) => [
+					row.categoryId,
+					Number(row.productCount),
+				]),
+			);
+			const childCategoryCounts = new Map<string, number>();
+			for (const cat of categoryRows) {
+				if (cat.parentId) {
+					const direct = directCategoryCounts.get(cat.id) ?? 0;
+					childCategoryCounts.set(
+						cat.parentId,
+						(childCategoryCounts.get(cat.parentId) ?? 0) + direct,
+					);
+				}
+			}
+
+			const totalPublishedProducts = categoryCountRows.reduce(
+				(sum, row) => sum + Number(row.productCount),
+				0,
+			);
+
+			const minPriceIdr = Number(priceBoundRows[0]?.minPriceIdr ?? 0);
+			const maxPriceIdr = Number(priceBoundRows[0]?.maxPriceIdr ?? 0);
+
+			return {
+				sizes: sizeRows.map((row) => ({
+					sizeLabel: row.sizeLabel,
+					sizeSortOrder: Number(row.sizeSortOrder),
+					productCount: Number(row.productCount),
+				})),
+				colors: colorRows.map((row) => ({
+					colorName: row.colorName,
+					colorHex: row.colorHex,
+					productCount: Number(row.productCount),
+				})),
+				priceRange: {
+					minPriceIdr,
+					maxPriceIdr: Math.max(minPriceIdr, maxPriceIdr),
+				},
+				categories: categoryRows.map((cat) => ({
+					...cat,
+					productCount:
+						(directCategoryCounts.get(cat.id) ?? 0) +
+						(childCategoryCounts.get(cat.id) ?? 0),
+				})),
+				collections: collectionRows.map((col) => ({
+					...col,
+					productCount: Number(col.productCount),
+				})),
+				genderAudiences: genderRows.map((row) => ({
+					genderAudience: row.genderAudience,
+					productCount: Number(row.productCount),
+				})),
+				totalPublishedProducts,
 			};
 		},
 	};

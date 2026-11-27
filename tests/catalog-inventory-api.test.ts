@@ -51,6 +51,7 @@ test("TASK-203: Hono app enforces 401 on unauthenticated admin endpoints and exp
 
 	// Verify RPC client surface on both singleton `api` and `testClient<AppType>`
 	assert.equal(typeof api.products.$get, "function");
+	assert.equal(typeof api.products.facets.$get, "function");
 	assert.equal(typeof api.products[":slug"].$get, "function");
 	assert.equal(typeof api.categories.$get, "function");
 	assert.equal(typeof api.collections.$get, "function");
@@ -387,6 +388,32 @@ test("TASK-203: End-to-end PostgreSQL integration for catalog filtering, PDP det
 			`/api/products?category=apparel-${suffix}&sort=price_asc`,
 		);
 		assert.equal(listParentRes.status, 200);
+
+		// Verify GET /api/products/facets aggregates sizes, colors, price bounds, and categories
+		const facetsRes = await testApp.request("/api/products/facets");
+		assert.equal(facetsRes.status, 200);
+		const facetsJson = (await facetsRes.json()) as {
+			sizes: Array<{ sizeLabel: string; productCount: number }>;
+			colors: Array<{
+				colorName: string;
+				colorHex: string;
+				productCount: number;
+			}>;
+			priceRange: { minPriceIdr: number; maxPriceIdr: number };
+			categories: Array<{ slug: string; productCount: number }>;
+			totalPublishedProducts: number;
+		};
+		assert.ok(facetsJson.totalPublishedProducts >= 2);
+		assert.ok(facetsJson.sizes.some((s) => s.sizeLabel === "M"));
+		assert.ok(facetsJson.colors.some((c) => c.colorName === "Sage"));
+		assert.ok(
+			facetsJson.priceRange.maxPriceIdr >= facetsJson.priceRange.minPriceIdr,
+		);
+		const parentFacetCat = facetsJson.categories.find(
+			(c) => c.slug === `apparel-${suffix}`,
+		);
+		assert.ok(parentFacetCat);
+		assert.equal(parentFacetCat.productCount, 2);
 		const listParentJson = (await listParentRes.json()) as {
 			items: Array<{
 				slug: string;

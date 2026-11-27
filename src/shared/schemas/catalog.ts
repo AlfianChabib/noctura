@@ -495,16 +495,22 @@ export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 // Catalog Filter Query Schema (PLP URL Search Params + GET /api/products)
 // ---------------------------------------------------------------------------
 
+const optionalTrimmedStringQuery = (maxLength: number, label: string) =>
+	z
+		.string()
+		.trim()
+		.max(maxLength, `${label} must not exceed ${maxLength} characters.`)
+		.transform((val) => (val.length > 0 ? val : undefined))
+		.optional();
+
 export const catalogFilterSchema = z
 	.object({
-		search: z
-			.string()
-			.trim()
-			.max(120, "Search query must not exceed 120 characters.")
+		search: optionalTrimmedStringQuery(120, "Search query"),
+		category: optionalTrimmedStringQuery(120, "Category filter"),
+		collection: optionalTrimmedStringQuery(140, "Collection filter"),
+		genderAudience: z
+			.union([z.literal("").transform(() => undefined), genderAudienceSchema])
 			.optional(),
-		category: z.string().trim().min(1).max(120).optional(),
-		collection: z.string().trim().min(1).max(140).optional(),
-		genderAudience: genderAudienceSchema.optional(),
 		size: queryStringArraySchema.optional(),
 		color: queryStringArraySchema.optional(),
 		minPrice: optionalNonNegativeIntQuerySchema.optional(),
@@ -534,14 +540,6 @@ export type CatalogFilterInput = z.input<typeof catalogFilterSchema>;
 // ---------------------------------------------------------------------------
 // Admin Catalog Management Schemas (TASK-204)
 // ---------------------------------------------------------------------------
-
-const optionalTrimmedStringQuery = (maxLength: number, label: string) =>
-	z
-		.string()
-		.trim()
-		.max(maxLength, `${label} must not exceed ${maxLength} characters.`)
-		.transform((val) => (val.length > 0 ? val : undefined))
-		.optional();
 
 export const productVariantAdminSchema = z
 	.object({
