@@ -1,6 +1,7 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import { z } from "zod";
 import type { Role } from "@/lib/auth-access";
+import { resolveCartVariantsQuerySchema } from "@/shared/schemas/cart";
 import {
 	adminCatalogFilterSchema,
 	adminProductStatusUpdateSchema,
@@ -47,6 +48,15 @@ export function createCatalogRoute({
 			const facets = await service.getCatalogFacets();
 			return c.json(facets, 200);
 		})
+		.get(
+			"/products/variants",
+			zodValidator("query", resolveCartVariantsQuerySchema),
+			async (c) => {
+				const { ids } = c.req.valid("query");
+				const items = await service.resolveVariantsByIds(ids);
+				return c.json({ items }, 200);
+			},
+		)
 		.get(
 			"/products/:slug",
 			zodValidator("param", productSlugParamSchema),

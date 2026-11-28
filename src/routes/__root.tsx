@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+import { useGuestCartHydration } from "@/hooks/use-cart-count";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import appCss from "../styles.css?url";
 
@@ -160,6 +161,8 @@ function RootNotFoundComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	useGuestCartHydration();
+
 	return (
 		<html lang="en">
 			<head>

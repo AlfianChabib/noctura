@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Moon, Search, ShoppingBag, Sun, X } from "lucide-react";
 import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import { GuestCartDrawer } from "@/components/catalog/cart-drawer";
 import { Input } from "@/components/ui/input";
 import {
 	Sheet,
@@ -10,9 +11,11 @@ import {
 	SheetDescription,
 	SheetTitle,
 } from "@/components/ui/sheet";
+import { useCartCount } from "@/hooks/use-cart-count";
 import { COS_EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { GenderAudience } from "@/shared/schemas/catalog";
+import { uiActions, useUiStore } from "@/store/ui.store";
 
 interface StorefrontShellProps {
 	children: React.ReactNode;
@@ -40,10 +43,12 @@ export function StorefrontShell({
 	onSearchChange,
 	onSearchSubmit,
 	activeGenderAudience,
-	bagCount = 0,
+	bagCount,
 }: StorefrontShellProps) {
 	const [searchOpen, setSearchOpen] = useState(Boolean(searchValue));
-	const [mobileNavOpen, setMobileNavOpen] = useState(false);
+	const mobileNavOpen = useUiStore((s) => s.isMobileMenuOpen);
+	const liveBagCount = useCartCount();
+	const resolvedBagCount = bagCount ?? liveBagCount;
 	const [isDark, setIsDark] = useState(false);
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -72,7 +77,7 @@ export function StorefrontShell({
 					<div className="flex items-center gap-3 shrink-0">
 						<button
 							type="button"
-							onClick={() => setMobileNavOpen(true)}
+							onClick={() => uiActions.openMobileMenu()}
 							aria-label="Open navigation menu"
 							className="inline-flex h-10 w-10 items-center justify-center rounded-none text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:hidden"
 						>
@@ -148,15 +153,16 @@ export function StorefrontShell({
 							)}
 						</button>
 
-						<Link
-							to="/products"
-							search={{ inStock: true }}
-							aria-label={`Shopping bag, ${bagCount} items`}
+						<button
+							type="button"
+							onClick={() => uiActions.openCartDrawer()}
+							aria-label={`Open shopping bag, ${resolvedBagCount} ${resolvedBagCount === 1 ? "item" : "items"}`}
+							data-testid="header-bag-button"
 							className="inline-flex h-10 items-center gap-2 whitespace-nowrap shrink-0 rounded-none border border-foreground bg-primary px-4 text-[12px] font-medium tracking-[0.06em] text-primary-foreground transition-colors duration-200 hover:bg-primary/88 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 						>
 							<ShoppingBag className="h-3.5 w-3.5 stroke-[1.5]" />
-							<span className="tabular-nums">Bag ({bagCount})</span>
-						</Link>
+							<span className="tabular-nums">Bag ({resolvedBagCount})</span>
+						</button>
 					</div>
 				</div>
 
@@ -204,7 +210,7 @@ export function StorefrontShell({
 					)}
 				</AnimatePresence>
 
-				<Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+				<Sheet open={mobileNavOpen} onOpenChange={uiActions.setMobileMenuOpen}>
 					<AnimatePresence>
 						{mobileNavOpen && (
 							<SheetContent side="left" className="p-0">
@@ -224,7 +230,7 @@ export function StorefrontShell({
 													? { genderAudience: item.genderAudience }
 													: {}
 											}
-											onClick={() => setMobileNavOpen(false)}
+											onClick={() => uiActions.closeMobileMenu()}
 											className="flex h-12 items-center justify-between text-left text-sm font-medium text-foreground"
 										>
 											<span>{item.label}</span>
@@ -232,7 +238,7 @@ export function StorefrontShell({
 									))}
 									<Link
 										to="/auth/login"
-										onClick={() => setMobileNavOpen(false)}
+										onClick={() => uiActions.closeMobileMenu()}
 										className="flex h-12 items-center justify-between text-left text-sm font-medium text-foreground"
 									>
 										<span>Account &amp; Sign In</span>
@@ -326,6 +332,7 @@ export function StorefrontShell({
 					</div>
 				</div>
 			</footer>
+			<GuestCartDrawer />
 		</div>
 	);
 }

@@ -4,6 +4,7 @@ import {
 	getIsomorphicApi,
 } from "@/lib/queries/isomorphic-api";
 import type {
+	CartResolvedVariant,
 	CatalogFacetsResponse,
 	ProductListResponse,
 } from "@/server/services/catalog.service";
@@ -17,6 +18,8 @@ export const storefrontCatalogKeys = {
 	details: () => [...storefrontCatalogKeys.all, "detail"] as const,
 	detail: (slug: string) => [...storefrontCatalogKeys.details(), slug] as const,
 	facets: () => [...storefrontCatalogKeys.all, "facets"] as const,
+	cartVariants: (ids: readonly string[]) =>
+		[...storefrontCatalogKeys.all, "cart-variants", ...ids] as const,
 };
 
 function toStorefrontQueryParams(filter: CatalogFilter) {
@@ -95,5 +98,30 @@ export function productBySlugQueryOptions(slug: string) {
 	return queryOptions({
 		queryKey: storefrontCatalogKeys.detail(slug),
 		queryFn: () => fetchProductBySlug(slug),
+	});
+}
+
+export function cartVariantsQueryOptions(variantIds: readonly string[]) {
+	const normalizedIds = Array.from(new Set(variantIds)).sort();
+	return queryOptions({
+		queryKey: storefrontCatalogKeys.cartVariants(normalizedIds),
+		enabled: normalizedIds.length > 0,
+		staleTime: 30_000,
+		queryFn: async (): Promise<CartResolvedVariant[]> => {
+			if (normalizedIds.length === 0) {
+				return [];
+			}
+			const client = await getIsomorphicApi();
+			const res = await client.products.variants.$get({
+				query: { ids: normalizedIds.join(",") },
+			});
+			if (!res.ok) {
+				throw new Error(
+					await getApiErrorMessage(res, "Failed to resolve bag items"),
+				);
+			}
+			const data = await res.json();
+			return data.items;
+		},
 	});
 }

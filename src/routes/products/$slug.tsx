@@ -33,6 +33,8 @@ import {
 import { productBySlugQueryOptions } from "@/lib/queries/storefront-catalog";
 import { buildProductHeadMetadata } from "@/lib/seo/product-seo";
 import { cn } from "@/lib/utils";
+import { guestCartActions } from "@/store/guest-cart.store";
+import { uiActions, useUiStore } from "@/store/ui.store";
 
 export const Route = createFileRoute("/products/$slug")({
 	validateSearch: validatePdpSearch,
@@ -104,10 +106,17 @@ function ProductDetailPage() {
 	const { data: product } = useSuspenseQuery(productBySlugQueryOptions(slug));
 
 	const [headerSearch, setHeaderSearch] = useState("");
-	const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+	const sizeGuideOpen = useUiStore((s) => s.isSizeGuideOpen);
 	const [sizeError, setSizeError] = useState(false);
 	const [addedVariantSku, setAddedVariantSku] = useState<string | null>(null);
+	const [bagLimitNotice, setBagLimitNotice] = useState<string | null>(null);
 	const [isSaved, setIsSaved] = useState(false);
+
+	useEffect(() => {
+		return () => {
+			uiActions.closeSizeGuide();
+		};
+	}, []);
 
 	const initialSelection = useMemo(
 		() =>
@@ -129,6 +138,7 @@ function ProductDetailPage() {
 		setSelectedSize(initialSelection.sizeLabel);
 		setSizeError(false);
 		setAddedVariantSku(null);
+		setBagLimitNotice(null);
 	}, [initialSelection.colorName, initialSelection.sizeLabel]);
 
 	if (!product) {
@@ -153,6 +163,7 @@ function ProductDetailPage() {
 		setSelectedColorName(nextColorName);
 		setSizeError(false);
 		setAddedVariantSku(null);
+		setBagLimitNotice(null);
 
 		const nextColorVariants = product.variants.filter(
 			(v) => v.colorName.toLowerCase() === nextColorName.toLowerCase(),
@@ -189,6 +200,7 @@ function ProductDetailPage() {
 		setSelectedSize(nextSize);
 		setSizeError(false);
 		setAddedVariantSku(null);
+		setBagLimitNotice(null);
 		void navigate({
 			to: "/products/$slug",
 			params: { slug: product.slug },
@@ -209,7 +221,21 @@ function ProductDetailPage() {
 			return;
 		}
 		setSizeError(false);
+		setBagLimitNotice(null);
+		const added = guestCartActions.addItem(
+			activeVariant.id,
+			1,
+			activeVariant.availableQuantity,
+		);
+		if (!added) {
+			setBagLimitNotice(
+				`Maximum available stock (${activeVariant.availableQuantity}) is already in your bag.`,
+			);
+			uiActions.openCartDrawer();
+			return;
+		}
 		setAddedVariantSku(activeVariant.sku);
+		uiActions.openCartDrawer();
 	};
 
 	const displayPriceText = activeVariant
@@ -371,7 +397,7 @@ function ProductDetailPage() {
 									selectedSize={selectedSize}
 									onSelectSize={handleSelectSize}
 									hasSizeGuide={Boolean(product.sizeGuide)}
-									onOpenSizeGuide={() => setSizeGuideOpen(true)}
+									onOpenSizeGuide={() => uiActions.openSizeGuide()}
 									sizeError={sizeError}
 								/>
 
@@ -425,12 +451,21 @@ function ProductDetailPage() {
 											role="status"
 											className="border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground"
 										>
-											Ready to bag:{" "}
+											Added to bag:{" "}
 											<span className="font-medium">
 												{activeVariant.colorName} / Size{" "}
 												{activeVariant.sizeLabel}
 											</span>{" "}
 											(<span className="font-mono">{activeVariant.sku}</span>)
+										</p>
+									)}
+
+									{bagLimitNotice && (
+										<p
+											role="status"
+											className="border border-border bg-secondary/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+										>
+											{bagLimitNotice}
 										</p>
 									)}
 								</div>
@@ -490,7 +525,7 @@ function ProductDetailPage() {
 											{product.sizeGuide && (
 												<button
 													type="button"
-													onClick={() => setSizeGuideOpen(true)}
+													onClick={() => uiActions.openSizeGuide()}
 													className="text-xs font-medium text-foreground underline underline-offset-4 hover:text-foreground/75"
 												>
 													Open {product.sizeGuide.name}
@@ -532,7 +567,7 @@ function ProductDetailPage() {
 				{product.sizeGuide && (
 					<SizeGuideModal
 						open={sizeGuideOpen}
-						onOpenChange={setSizeGuideOpen}
+						onOpenChange={uiActions.setSizeGuideOpen}
 						sizeGuide={product.sizeGuide}
 						productName={product.name}
 						fitType={product.fitType}

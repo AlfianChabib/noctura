@@ -106,6 +106,24 @@ export interface ProductListResponse {
 	pagination: PaginationMeta;
 }
 
+export interface CartResolvedVariant {
+	id: string;
+	productId: string;
+	productSlug: string;
+	productName: string;
+	brand: string;
+	sku: string;
+	colorName: string;
+	colorHex: string;
+	sizeLabel: string;
+	priceIdr: number;
+	compareAtPriceIdr: number | null;
+	availableQuantity: number;
+	weightGrams: number;
+	imageUrl: string | null;
+	imageAlt: string;
+}
+
 export interface CatalogColorFacet {
 	colorName: string;
 	colorHex: string;
@@ -1738,6 +1756,101 @@ export function createCatalogService(deps: CatalogServiceDeps = {}) {
 				})),
 				totalPublishedProducts,
 			};
+		},
+
+		async resolveVariantsByIds(
+			variantIds: readonly string[],
+		): Promise<CartResolvedVariant[]> {
+			const uniqueIds = Array.from(new Set(variantIds));
+			if (uniqueIds.length === 0) {
+				return [];
+			}
+
+			const rows = await database
+				.select({
+					id: productVariants.id,
+					productId: products.id,
+					productSlug: products.slug,
+					productName: products.name,
+					brand: products.brand,
+					sku: productVariants.sku,
+					colorName: productVariants.colorName,
+					colorHex: productVariants.colorHex,
+					sizeLabel: productVariants.sizeLabel,
+					priceIdr: productVariants.priceIdr,
+					compareAtPriceIdr: productVariants.compareAtPriceIdr,
+					stockQuantity: productVariants.stockQuantity,
+					reservedQuantity: productVariants.reservedQuantity,
+					weightGrams: productVariants.weightGrams,
+				})
+				.from(productVariants)
+				.innerJoin(products, eq(products.id, productVariants.productId))
+				.where(
+					and(
+						inArray(productVariants.id, uniqueIds),
+						eq(productVariants.isActive, true),
+						eq(products.status, "published"),
+					),
+				);
+
+			if (rows.length === 0) {
+				return [];
+			}
+
+			const productIds = Array.from(new Set(rows.map((row) => row.productId)));
+			const mediaRows = await database
+				.select({
+					productId: productMedia.productId,
+					colorName: productMedia.colorName,
+					url: productMedia.url,
+					altText: productMedia.altText,
+					mediaType: productMedia.mediaType,
+					isPrimary: productMedia.isPrimary,
+					sortOrder: productMedia.sortOrder,
+				})
+				.from(productMedia)
+				.where(inArray(productMedia.productId, productIds))
+				.orderBy(desc(productMedia.isPrimary), asc(productMedia.sortOrder));
+
+			const mediaByProduct = new Map<string, typeof mediaRows>();
+			for (const item of mediaRows) {
+				if (item.mediaType !== "image") continue;
+				const bucket = mediaByProduct.get(item.productId);
+				if (bucket) {
+					bucket.push(item);
+				} else {
+					mediaByProduct.set(item.productId, [item]);
+				}
+			}
+
+			return rows.map((row) => {
+				const images = mediaByProduct.get(row.productId) ?? [];
+				const colorMatch = images.find(
+					(img) => img.colorName?.toLowerCase() === row.colorName.toLowerCase(),
+				);
+				const primaryImage = colorMatch ?? images[0] ?? null;
+
+				return {
+					id: row.id,
+					productId: row.productId,
+					productSlug: row.productSlug,
+					productName: row.productName,
+					brand: row.brand,
+					sku: row.sku,
+					colorName: row.colorName,
+					colorHex: row.colorHex,
+					sizeLabel: row.sizeLabel,
+					priceIdr: row.priceIdr,
+					compareAtPriceIdr: row.compareAtPriceIdr,
+					availableQuantity: Math.max(
+						0,
+						row.stockQuantity - row.reservedQuantity,
+					),
+					weightGrams: row.weightGrams,
+					imageUrl: primaryImage?.url ?? null,
+					imageAlt: primaryImage?.altText ?? row.productName,
+				};
+			});
 		},
 	};
 }
