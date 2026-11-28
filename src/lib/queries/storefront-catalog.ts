@@ -14,6 +14,8 @@ export const storefrontCatalogKeys = {
 	lists: () => [...storefrontCatalogKeys.all, "list"] as const,
 	list: (filter: CatalogFilter) =>
 		[...storefrontCatalogKeys.lists(), filter] as const,
+	details: () => [...storefrontCatalogKeys.all, "detail"] as const,
+	detail: (slug: string) => [...storefrontCatalogKeys.details(), slug] as const,
 	facets: () => [...storefrontCatalogKeys.all, "facets"] as const,
 };
 
@@ -66,5 +68,32 @@ export function catalogFacetsQueryOptions() {
 			}
 			return res.json();
 		},
+	});
+}
+
+async function fetchProductBySlug(slug: string) {
+	const client = await getIsomorphicApi();
+	const res = await client.products[":slug"].$get({
+		param: { slug },
+	});
+	if ((res.status as number) === 404) {
+		return null;
+	}
+	if (!res.ok) {
+		throw new Error(
+			await getApiErrorMessage(res, "Failed to load product details"),
+		);
+	}
+	return res.json();
+}
+
+export type StorefrontProductDetail = NonNullable<
+	Awaited<ReturnType<typeof fetchProductBySlug>>
+>;
+
+export function productBySlugQueryOptions(slug: string) {
+	return queryOptions({
+		queryKey: storefrontCatalogKeys.detail(slug),
+		queryFn: () => fetchProductBySlug(slug),
 	});
 }

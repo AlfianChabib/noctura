@@ -18,6 +18,7 @@ interface StorefrontShellProps {
 	children: React.ReactNode;
 	searchValue: string;
 	onSearchChange: (nextSearch: string) => void;
+	onSearchSubmit?: (searchValue: string) => void;
 	activeGenderAudience?: GenderAudience | null;
 	bagCount?: number;
 }
@@ -37,6 +38,7 @@ export function StorefrontShell({
 	children,
 	searchValue,
 	onSearchChange,
+	onSearchSubmit,
 	activeGenderAudience,
 	bagCount = 0,
 }: StorefrontShellProps) {
@@ -168,7 +170,13 @@ export function StorefrontShell({
 							transition={{ duration: 0.22, ease: COS_EASE }}
 							className="border-t border-border bg-background"
 						>
-							<div className="mx-auto flex max-w-360 items-center gap-4 px-4 py-3 sm:px-8 lg:px-12">
+							<form
+								onSubmit={(e) => {
+									e.preventDefault();
+									onSearchSubmit?.(searchValue);
+								}}
+								className="mx-auto flex max-w-360 items-center gap-4 px-4 py-3 sm:px-8 lg:px-12"
+							>
 								<Search className="h-4 w-4 shrink-0 stroke-[1.5] text-muted-foreground" />
 								<label htmlFor="plp-header-search" className="sr-only">
 									Search products by name, brand, or SKU
@@ -191,7 +199,7 @@ export function StorefrontShell({
 										Clear
 									</button>
 								)}
-							</div>
+							</form>
 						</motion.div>
 					)}
 				</AnimatePresence>

@@ -19,6 +19,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
+import { Route as ProductsSlugRouteImport } from './routes/products/$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminAdminProductsIndexRouteImport } from './routes/_admin/admin/products/index'
@@ -73,6 +74,11 @@ const ProductsIndexRoute = ProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductsSlugRoute = ProductsSlugRouteImport.update({
+  id: '/products/$slug',
+  path: '/products/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/login': typeof AuthLoginRoute
+  '/products/$slug': typeof ProductsSlugRoute
   '/products/': typeof ProductsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin/': typeof AdminAdminIndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/login': typeof AuthLoginRoute
+  '/products/$slug': typeof ProductsSlugRoute
   '/products': typeof ProductsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin': typeof AdminAdminIndexRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/login': typeof AuthLoginRoute
+  '/products/$slug': typeof ProductsSlugRoute
   '/products/': typeof ProductsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/api/$'
     | '/auth/login'
+    | '/products/$slug'
     | '/products/'
     | '/api/auth/$'
     | '/admin/'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/api/$'
     | '/auth/login'
+    | '/products/$slug'
     | '/products'
     | '/api/auth/$'
     | '/admin'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/api/$'
     | '/auth/login'
+    | '/products/$slug'
     | '/products/'
     | '/api/auth/$'
     | '/_admin/admin/'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   UnauthorizedRoute: typeof UnauthorizedRoute
   ApiSplatRoute: typeof ApiSplatRoute
   AuthLoginRoute: typeof AuthLoginRoute
+  ProductsSlugRoute: typeof ProductsSlugRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -281,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products/'
       preLoaderRoute: typeof ProductsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/$slug': {
+      id: '/products/$slug'
+      path: '/products/$slug'
+      fullPath: '/products/$slug'
+      preLoaderRoute: typeof ProductsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_admin/admin/': {
@@ -358,6 +378,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnauthorizedRoute: UnauthorizedRoute,
   ApiSplatRoute: ApiSplatRoute,
   AuthLoginRoute: AuthLoginRoute,
+  ProductsSlugRoute: ProductsSlugRoute,
   ProductsIndexRoute: ProductsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
